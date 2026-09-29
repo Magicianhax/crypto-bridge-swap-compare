@@ -1,15 +1,15 @@
 <div align="center">
 
-<img src="public/icon/128.png" width="104" alt="Quote Compare logo" />
+<img src="public/icon/128.png" width="104" alt="Crypto Bridge & Swap Compare logo" />
 
-# Quote Compare
+# Crypto Bridge & Swap Compare
 
-**One trade, five swap and bridge sites, fees included.**<br />
-See what Jumper, Jumper Advanced, Bungee, Relay and Matcha would each give you, side by side, before you sign anywhere.
+**A Chrome extension that compares crypto swap and bridge quotes across Jumper, Jumper Advanced, Bungee, Relay and Matcha, side by side, fees included.**<br />
+Pick a trade, see what each site would give you after its own fee, and open the winner with the trade filled in.
 
 <br />
 
-<a href="../../releases/latest/download/quote-compare-chrome.zip">
+<a href="../../releases/latest/download/crypto-bridge-swap-compare-chrome.zip">
   <img src="https://img.shields.io/badge/Download%20for%20Chrome-0F766E?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Download for Chrome" height="60" />
 </a>
 
@@ -26,18 +26,18 @@ See what Jumper, Jumper Advanced, Bungee, Relay and Matcha would each give you, 
 ---
 
 <p align="center">
-  <img src="docs/screenshots/side-panel.png" alt="Quote Compare in the Chrome side panel next to a website" width="100%" />
+  <img src="docs/screenshots/side-panel.png" alt="Crypto Bridge & Swap Compare in the Chrome side panel next to a website" width="100%" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/pop-out.png" alt="Quote Compare in its wide pop-out window: five venues ranked for a 10,000 USDT to USDC bridge" width="100%" />
+  <img src="docs/screenshots/pop-out.png" alt="Crypto Bridge & Swap Compare in its wide pop-out window: five venues ranked for a 10,000 USDT to USDC bridge" width="100%" />
 </p>
 
 ## Why
 
 Aggregators only compare their own sources, and each one takes its own fee out of the number it shows you. Jumper started charging a fee on jumper.xyz while jumper.xyz/advanced does not, and the same bridge (Across, Relay, Stargate...) often pays a different amount depending on which site you use it through.
 
-Quote Compare asks all five sites the same question at once and shows you the answer each one gives.
+Crypto Bridge & Swap Compare asks all five sites the same question at once and shows you the answer each one gives.
 
 ## What it does
 
@@ -54,16 +54,16 @@ Quote Compare asks all five sites the same question at once and shows you the an
 
 ## Install
 
-1. Click **Download for Chrome** above and unzip `quote-compare-chrome.zip`.
+1. Click **Download for Chrome** above and unzip `crypto-bridge-swap-compare-chrome.zip`.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
 3. Click **Load unpacked** and select the unzipped folder.
-4. Pin Quote Compare and click its icon to open the side panel.
+4. Pin Crypto Bridge & Swap Compare and click its icon to open the side panel.
 
 Works in Chrome and Chromium browsers with side panel support, such as Brave and Edge.
 
 ## How it works
 
-Quote Compare does not call any quote API. It opens the five sites in a minimized background window with your trade already in the URL, reads the quote each site's own page receives, and shows it to you. The numbers are the ones each site would show you, after its own fee.
+Crypto Bridge & Swap Compare does not call any quote API. It opens the five sites in a minimized background window with your trade already in the URL, reads the quote each site's own page receives, and shows it to you. The numbers are the ones each site would show you, after its own fee.
 
 - No API keys, no backend, no account.
 - It never connects a wallet, approves a token or signs anything. You do that on the venue's own site.
@@ -122,7 +122,7 @@ git tag v0.1.1
 git push origin v0.1.1
 ```
 
-The release workflow checks the tag matches `package.json`, runs the tests, builds, and attaches `quote-compare-chrome.zip` to a GitHub Release. The Download button above always points at the latest release.
+The release workflow checks the tag matches `package.json`, runs the tests, builds, and attaches `crypto-bridge-swap-compare-chrome.zip` to a GitHub Release. The Download button above always points at the latest release.
 
 ## Credits
 

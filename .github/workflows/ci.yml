@@ -33,9 +33,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
       - run: pnpm zip
-      - run: cp .output/quote-compare-*-chrome.zip quote-compare-chrome.zip
+      - run: cp .output/crypto-bridge-swap-compare-*-chrome.zip crypto-bridge-swap-compare-chrome.zip
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: quote-compare-chrome
-          path: quote-compare-chrome.zip
+          name: crypto-bridge-swap-compare-chrome
+          path: crypto-bridge-swap-compare-chrome.zip
           retention-days: 30

@@ -32,3 +32,6 @@ repomix.xml
 node_modules/
 .output/
 .wxt/
+
+# design tool cache
+.impeccable/

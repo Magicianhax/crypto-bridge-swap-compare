@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: "Quote Compare"
+name: "Crypto Bridge & Swap Compare"
 description: "A trade ticket beside the dApp: one send/receive ticket, five venue cards, one teal action colour, green only for the winner."
 colors:
   primary: "#14181B"

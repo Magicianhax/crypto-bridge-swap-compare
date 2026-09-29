@@ -1,4 +1,4 @@
-# Quote Compare
+# Crypto Bridge & Swap Compare
 
 Chrome side-panel extension that compares swap and bridge quotes from Jumper, Jumper Advanced, Bungee, Relay and Matcha by reading each site's own page traffic. See PRODUCT.md.
 
