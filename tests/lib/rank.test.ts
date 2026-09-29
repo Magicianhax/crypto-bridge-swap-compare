@@ -36,14 +36,20 @@ describe('rankQuotes', () => {
 });
 
 describe('pickVenueBest', () => {
-  it('takes the highest amount', () => {
-    expect(pickVenueBest([q('jumper', '100', 6, 5), q('jumper', '300', 6, 900)])?.toAmount).toBe('300');
+  const routes = () => [q('jumper', '1000000', 6, 600), q('jumper', '999600', 6, 5), q('jumper', '999000', 6, 1), q('jumper', '999900', 6)];
+
+  it('by value takes the highest amount, however slow', () => {
+    expect(pickVenueBest(routes(), 'value')?.toAmount).toBe('1000000');
   });
-  it('prefers a faster route within 0.05% of the top amount', () => {
-    const pick = pickVenueBest([q('jumper', '1000000', 6, 600), q('jumper', '999600', 6, 5), q('jumper', '999000', 6, 1)]);
-    expect(pick?.toAmount).toBe('999600');
+  it('by time takes the fastest route, however small', () => {
+    expect(pickVenueBest(routes(), 'time')?.toAmount).toBe('999000');
+  });
+  it('by time breaks a speed tie on amount and puts unknown times last', () => {
+    expect(pickVenueBest([q('jumper', '5', 6, 2), q('jumper', '9', 6, 2)], 'time')?.toAmount).toBe('9');
+    expect(pickVenueBest([q('jumper', '9', 6), q('jumper', '5', 6, 40)], 'time')?.toAmount).toBe('5');
   });
   it('returns nothing for no quotes', () => {
-    expect(pickVenueBest([])).toBeUndefined();
+    expect(pickVenueBest([], 'value')).toBeUndefined();
+    expect(pickVenueBest([], 'time')).toBeUndefined();
   });
 });

@@ -36,7 +36,8 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 async function pick(side, [chainId, address]) {
   await page.click(`#${side}Pick`);
-  await page.click(`#chainChips button[data-chain="${chainId}"]`);
+  await page.click('#chainButton');
+  await page.click(`#chainList [data-chain="${chainId}"]`);
   await page.click(`#tokenList button.token[data-address="${address}" i]`);
 }
 

@@ -12,6 +12,6 @@ export default defineConfig({
       'https://relay.link/*',
       'https://matcha.xyz/*',
     ],
-    action: { default_title: 'Quote Compare' },
+    action: { default_title: 'Quote Compare', default_icon: { 16: 'icon/16.png', 32: 'icon/32.png', 48: 'icon/48.png', 128: 'icon/128.png' } },
   },
 });

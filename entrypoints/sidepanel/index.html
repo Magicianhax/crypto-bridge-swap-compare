@@ -20,7 +20,7 @@
             <span id="kind" class="kind"></span>
           </div>
           <div class="leg-body">
-            <input id="amount" class="amount-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.0" aria-labelledby="sendLabel" />
+            <input id="amount" class="amount-input" type="text" size="1" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.0" aria-labelledby="sendLabel" />
             <button type="button" id="fromPick" class="pick" aria-haspopup="dialog"></button>
           </div>
         </section>
@@ -47,11 +47,15 @@
 
       <section class="results" aria-labelledby="resultsTitle">
         <div class="results-head">
-          <h2 id="resultsTitle">Best route per venue</h2>
+          <h2 id="resultsTitle" class="sr-only">Best route per venue</h2>
+          <div class="tabs" role="tablist" aria-label="Rank venues by">
+            <button type="button" class="tab" role="tab" id="tabValue" data-by="value" aria-selected="true" aria-controls="cards">Best by value</button>
+            <button type="button" class="tab" role="tab" id="tabTime" data-by="time" aria-selected="false" aria-controls="cards" tabindex="-1">Best by time</button>
+          </div>
           <p id="summary" class="summary" aria-live="polite"></p>
         </div>
         <p id="banner" class="banner" role="status"></p>
-        <ol id="cards" class="cards"></ol>
+        <ol id="cards" class="cards" role="tabpanel" aria-labelledby="tabValue"></ol>
         <p id="empty" class="empty">Choose a trade and press Compare. Each venue's own page quotes it, and you see each venue's best route here.</p>
         <p class="footnote">Amounts are what each site quoted, after its own fee. You sign on the venue's site.</p>
       </section>
@@ -62,7 +66,10 @@
         <h2 id="pickerTitle">Select a token</h2>
         <button type="button" id="pickerClose" class="icon-btn" aria-label="Close"></button>
       </div>
-      <div id="chainChips" class="chips" role="radiogroup" aria-label="Chain"></div>
+      <div class="chain-select">
+        <button type="button" id="chainButton" class="chain-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainList"></button>
+        <ul id="chainList" class="chain-list" role="listbox" aria-label="Chain" hidden></ul>
+      </div>
       <label class="search">
         <span class="search-icon" aria-hidden="true"></span>
         <span class="sr-only">Search tokens</span>

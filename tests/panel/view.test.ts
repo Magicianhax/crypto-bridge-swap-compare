@@ -28,9 +28,21 @@ describe('buildCards', () => {
   });
 });
 
+describe('buildCards by time', () => {
+  it('shows each venue at its fastest route, fastest venue first', () => {
+    const cards = buildCards(results, 'time');
+    expect(cards.map((c) => `${c.venue}:${c.route ?? c.state}`)).toEqual(['jumper:A', 'bungee:C', 'relay:loading', 'matcha:error']);
+    expect(cards[0]).toMatchObject({ best: true, badge: 'Fastest', eta: '1s', receive: '1', delta: '-66.667%' });
+    expect(cards[1]).toMatchObject({ best: false, badge: undefined, delta: 'Best' });
+  });
+});
+
 describe('summarize', () => {
   it('names the winner and how much it beats Jumper by', () => {
     expect(summarize(buildCards(results), 'USDC')).toBe('Bungee pays most: 3 USDC, 50% more than Jumper.');
+  });
+  it('names the fastest venue and what it gives up', () => {
+    expect(summarize(buildCards(results, 'time'), 'USDC', 'time')).toBe('Jumper is fastest (1s): 1 USDC, 66.667% less than the best amount.');
   });
   it('stays quiet until a venue has quoted', () => {
     expect(summarize(buildCards([{ venue: 'relay', status: 'loading', quotes: [], updatedAt: 1 }]), 'ETH')).toBe('');

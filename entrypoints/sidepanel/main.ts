@@ -4,6 +4,7 @@ import type { PanelToWorker, WorkerToPanel } from '../../src/messages';
 import { buildTrade, DEFAULT_STATE, flipState, resolveToken, stateFromHint, tradeKind, type FormState } from '../../src/panel/form';
 import { icon } from '../../src/panel/icons';
 import { logo, tokenMark } from '../../src/panel/marks';
+import type { RankBy } from '../../src/lib/rank';
 import { buildCards, renderCards, summarize } from '../../src/panel/view';
 import type { Token, Trade, VenueId } from '../../src/types';
 import { ADAPTERS, hintFromUrl } from '../../src/venues';
@@ -32,11 +33,13 @@ const popout = byId<HTMLButtonElement>('popout');
 const summary = byId<HTMLParagraphElement>('summary');
 const banner = byId<HTMLParagraphElement>('banner');
 const cardsList = byId<HTMLOListElement>('cards');
+const tabs = [byId<HTMLButtonElement>('tabValue'), byId<HTMLButtonElement>('tabTime')];
 const empty = byId<HTMLParagraphElement>('empty');
 const picker = byId<HTMLDialogElement>('picker');
 const pickerTitle = byId<HTMLHeadingElement>('pickerTitle');
 const pickerClose = byId<HTMLButtonElement>('pickerClose');
-const chainChips = byId<HTMLDivElement>('chainChips');
+const chainButton = byId<HTMLButtonElement>('chainButton');
+const chainList = byId<HTMLUListElement>('chainList');
 const tokenSearch = byId<HTMLInputElement>('tokenSearch');
 const tokenList = byId<HTMLUListElement>('tokenList');
 
@@ -46,6 +49,8 @@ let lastTrade: Trade | null = null;
 let port: ReturnType<typeof browser.runtime.connect> | null = null;
 let pickerSide: 'from' | 'to' = 'from';
 let pickerChainId = state.fromChainId;
+let rankBy: RankBy = 'value';
+let lastResults: Parameters<typeof buildCards>[0] = [];
 
 /* ---------- Ticket ---------- */
 
@@ -90,21 +95,48 @@ function setState(next: FormState, userEdit = true): void {
 
 /* ---------- Picker ---------- */
 
-function renderChips(): void {
-  chainChips.replaceChildren(
+function chainLabel(chainId: number): HTMLElement[] {
+  const chain = chainById(chainId);
+  const name = document.createElement('span');
+  name.className = 'chain-name';
+  name.textContent = chain?.name ?? 'Choose chain';
+  return [logo(document, chain ? `/logos/chains/${chain.logo}` : undefined, chain?.name ?? '?', 'chain-logo'), name];
+}
+
+function renderChainSelect(): void {
+  chainButton.replaceChildren(...chainLabel(pickerChainId), icon(document, 'chevronDown', 14));
+  chainButton.setAttribute('aria-label', `Chain: ${chainById(pickerChainId)?.name ?? 'none'}. Change`);
+  chainList.replaceChildren(
     ...CHAINS.map((chain) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip';
-      chip.setAttribute('role', 'radio');
-      chip.setAttribute('aria-checked', String(chain.id === pickerChainId));
-      chip.dataset.chain = String(chain.id);
-      const name = document.createElement('span');
-      name.textContent = chain.name;
-      chip.append(logo(document, `/logos/chains/${chain.logo}`, chain.name, ''), name);
-      return chip;
+      const option = document.createElement('li');
+      option.className = 'chain-option';
+      option.setAttribute('role', 'option');
+      option.tabIndex = -1;
+      option.dataset.chain = String(chain.id);
+      option.setAttribute('aria-selected', String(chain.id === pickerChainId));
+      option.append(...chainLabel(chain.id));
+      if (chain.id === pickerChainId) option.append(icon(document, 'check', 14));
+      return option;
     }),
   );
+}
+
+function setChainMenu(open: boolean): void {
+  chainList.hidden = !open;
+  chainButton.setAttribute('aria-expanded', String(open));
+  if (open) {
+    const current = chainList.querySelector<HTMLElement>('[aria-selected="true"]') ?? chainList.querySelector<HTMLElement>('.chain-option');
+    current?.scrollIntoView({ block: 'nearest' });
+    current?.focus();
+  }
+}
+
+function chooseChain(chainId: number): void {
+  pickerChainId = chainId;
+  renderChainSelect();
+  renderTokens();
+  setChainMenu(false);
+  tokenSearch.focus();
 }
 
 function tokenRow(token: Token, current: boolean, custom = false): HTMLLIElement {
@@ -153,7 +185,8 @@ function openPicker(side: 'from' | 'to'): void {
   pickerChainId = side === 'from' ? state.fromChainId : state.toChainId;
   pickerTitle.textContent = side === 'from' ? 'You send' : 'You receive';
   tokenSearch.value = '';
-  renderChips();
+  renderChainSelect();
+  setChainMenu(false);
   renderTokens();
   picker.showModal();
   tokenSearch.focus();
@@ -197,12 +230,14 @@ function connect(): ReturnType<typeof browser.runtime.connect> {
 const send = (message: PanelToWorker) => connect().postMessage(message);
 
 function showResults(results: Parameters<typeof buildCards>[0]): void {
+  lastResults = results;
   const symbol = lastTrade?.toToken.symbol ?? '';
-  const cards = buildCards(results);
+  const cards = buildCards(results, rankBy);
   renderCards(cardsList, cards, symbol);
   empty.hidden = cards.length > 0;
-  summary.textContent = summarize(cards, symbol);
-  const winner = cards.find((c) => c.best && c.state === 'quote');
+  summary.textContent = summarize(cards, symbol, rankBy);
+  // "You receive" always shows the best amount, whichever tab is open.
+  const winner = buildCards(results, 'value').find((c) => c.best && c.state === 'quote');
   if (winner?.receive) {
     receiveHint.textContent = winner.receive;
     receiveHint.classList.add('has-quote');
@@ -261,18 +296,58 @@ amount.addEventListener('input', () => {
   state = { ...state, amount: amount.value };
   dirty = true;
 });
+function selectTab(tab: HTMLButtonElement): void {
+  rankBy = tab.dataset.by === 'time' ? 'time' : 'value';
+  for (const t of tabs) {
+    const selected = t === tab;
+    t.setAttribute('aria-selected', String(selected));
+    t.tabIndex = selected ? 0 : -1;
+  }
+  cardsList.setAttribute('aria-labelledby', tab.id);
+  showResults(lastResults);
+}
+
+for (const tab of tabs) {
+  tab.addEventListener('click', () => selectTab(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    const other = tabs[(tabs.indexOf(tab) + 1) % tabs.length];
+    if (!other) return;
+    other.focus();
+    selectTab(other);
+  });
+}
 fromPick.addEventListener('click', () => openPicker('from'));
 toPick.addEventListener('click', () => openPicker('to'));
 flip.addEventListener('click', () => setState(flipState(state)));
 refreshButton.addEventListener('click', () => send({ type: 'refresh' }));
 
-chainChips.addEventListener('click', (event) => {
-  const chip = (event.target as HTMLElement).closest<HTMLButtonElement>('button.chip');
-  if (!chip) return;
-  pickerChainId = Number(chip.dataset.chain);
-  renderChips();
-  renderTokens();
-  tokenSearch.focus();
+chainButton.addEventListener('click', () => setChainMenu(chainList.hidden));
+chainList.addEventListener('click', (event) => {
+  const option = (event.target as HTMLElement).closest<HTMLElement>('.chain-option');
+  if (option?.dataset.chain) chooseChain(Number(option.dataset.chain));
+});
+chainList.addEventListener('keydown', (event) => {
+  const options = [...chainList.querySelectorAll<HTMLElement>('.chain-option')];
+  const index = options.indexOf(document.activeElement as HTMLElement);
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    options[(index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length]?.focus();
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    const chain = options[index]?.dataset.chain;
+    if (chain) chooseChain(Number(chain));
+  }
+});
+picker.addEventListener('cancel', (event) => {
+  // Escape closes an open chain menu first, then the picker.
+  if (chainList.hidden) return;
+  event.preventDefault();
+  setChainMenu(false);
+  chainButton.focus();
+});
+picker.addEventListener('pointerdown', (event) => {
+  if (!chainList.hidden && !(event.target as HTMLElement).closest('.chain-select')) setChainMenu(false);
 });
 tokenSearch.addEventListener('input', renderTokens);
 tokenSearch.addEventListener('keydown', (event) => {

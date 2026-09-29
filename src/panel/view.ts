@@ -1,5 +1,5 @@
 import { fmtDelta, fmtEta, fmtFee, fmtGas, fmtPct, fmtUsd } from '../lib/format';
-import { pickVenueBest, rankQuotes, type RankedQuote } from '../lib/rank';
+import { byTime, pickVenueBest, rankQuotes, type RankBy, type RankedQuote } from '../lib/rank';
 import { formatUnits } from '../lib/units';
 import type { VenueId, VenueResult, VenueStatus } from '../types';
 import { ADAPTERS } from '../venues';
@@ -21,7 +21,9 @@ export interface VenueCard {
   label: string;
   logo: string;
   state: CardState;
+  /** the winner of the current tab: highest amount, or fastest */
   best: boolean;
+  badge?: 'Best' | 'Fastest';
   /** how many routes the venue quoted; the card shows only its pick */
   routes: number;
   route?: string;
@@ -44,21 +46,28 @@ function note(r: VenueResult): string {
   return `No quote: ${r.error ?? 'no response in time'}`;
 }
 
-/** One card per venue: its single best route (amount first, speed as the tiebreak), best venue first. */
-export function buildCards(results: VenueResult[]): VenueCard[] {
+/**
+ * One card per venue, showing only that venue's pick for the tab: its highest amount ('value') or its
+ * fastest route ('time'). Venues are ordered the same way; "vs best" is always against the top amount.
+ */
+export function buildCards(results: VenueResult[], by: RankBy = 'value'): VenueCard[] {
   const picks = new Map<VenueId, { result: VenueResult; pick: RankedQuote }>();
   for (const result of results) {
     if (result.status !== 'ok') continue;
-    const pick = pickVenueBest(result.quotes);
+    const pick = pickVenueBest(result.quotes, by);
     if (pick) picks.set(result.venue, { result, pick });
   }
-  const ranked = rankQuotes([...picks.values()].map((p) => p.pick));
+  const byValue = rankQuotes([...picks.values()].map((p) => p.pick));
+  const ranked = by === 'time' ? byTime(byValue) : byValue;
+  const fastest = ranked[0]?.etaSec;
+  const isWinner = (q: RankedQuote) => (by === 'time' ? fastest !== undefined && q.etaSec === fastest : q.best);
   const cards: VenueCard[] = ranked.map((q) => ({
     venue: q.venue,
     label: ADAPTERS[q.venue].label,
     logo: VENUE_LOGO[q.venue],
     state: 'quote',
-    best: q.best,
+    best: isWinner(q),
+    badge: isWinner(q) ? (by === 'time' ? 'Fastest' : 'Best') : undefined,
     routes: picks.get(q.venue)?.result.quotes.length ?? 1,
     route: q.route,
     receive: formatUnits(q.toAmount, q.toDecimals),
@@ -76,10 +85,14 @@ export function buildCards(results: VenueResult[]): VenueCard[] {
   return cards.sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]);
 }
 
-/** One line naming the winner and, when Jumper quoted too, how far ahead of Jumper it is. */
-export function summarize(cards: VenueCard[], toSymbol: string): string {
+/** One line naming the tab's winner: by value, how far ahead of Jumper; by time, what speed costs. */
+export function summarize(cards: VenueCard[], toSymbol: string, by: RankBy = 'value'): string {
   const winner = cards.find((c) => c.state === 'quote' && c.best);
   if (!winner) return '';
+  if (by === 'time') {
+    const head = `${winner.label} is fastest (${winner.eta}): ${winner.receive} ${toSymbol}`;
+    return winner.deltaPct ? `${head}, ${fmtPct(-winner.deltaPct)} less than the best amount.` : `${head}, also the best amount.`;
+  }
   const head = `${winner.label} pays most: ${winner.receive} ${toSymbol}`;
   const jumper = cards.find((c) => c.venue === 'jumper' && c.state === 'quote');
   if (!jumper || jumper.best || jumper.deltaPct === undefined || jumper.deltaPct === 0) return `${head}.`;
@@ -111,7 +124,7 @@ export function renderCards(list: HTMLElement, cards: VenueCard[], toSymbol = ''
       item.dataset.venue = card.venue;
       const head = el(doc, 'div', 'card-head');
       head.append(logo(doc, `/logos/venues/${card.logo}`, card.label, 'venue-logo'), el(doc, 'span', 'venue', card.label));
-      if (card.best) head.append(el(doc, 'span', 'badge', 'Best'));
+      if (card.badge) head.append(el(doc, 'span', 'badge', card.badge));
       item.append(head);
 
       if (card.state !== 'quote') {
@@ -128,7 +141,7 @@ export function renderCards(list: HTMLElement, cards: VenueCard[], toSymbol = ''
 
       const facts = el(doc, 'dl', 'facts');
       facts.append(
-        fact(doc, 'vs best', card.delta ?? '', 'delta'),
+        fact(doc, 'vs top amount', card.delta ?? '', 'delta'),
         fact(doc, 'Venue fee', card.fee ?? '—'),
         fact(doc, 'Gas', card.gas ?? '—'),
         fact(doc, 'Time', card.eta ?? '—'),
