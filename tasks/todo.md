@@ -3813,3 +3813,22 @@ git commit -m "test: live smoke script and recorded results"
 ```
 
 Step 3 (manual match against each site) not done in this run: the smoke rows come from the sites' own responses, and the fixtures were checked against the sites' displayed numbers during the teardown.
+
+### Per-site amount check (2026-09-29, same page, same moment)
+
+- Jumper: page 0.099949 ETH = route `toAmount` 99949660614129991 (teardown, Chrome).
+- Matcha: page "You receive (incl. fee) 813.13 USDC" = `buyAmount` 813132075 (teardown, Chrome).
+- Relay: page 0.09992 ETH = `currencyOut.amount` 99920075372895135 (headless Chrome).
+- Bungee: page 0.100008 ETH = suggested route `output.amount` 100007617184960011 (headless Chrome).
+- Jumper Advanced uses the same response shape as Jumper (same parser, fixtures differ only by fee items).
+
+### Final review
+
+- Code review (fresh reviewer): ready after fixes. 0 critical, 3 important, 7 minor.
+- Security review: PASS. 3 medium, 4 low, 1 info.
+- Fix pass `cfcbc00..05dbb82`: all important and medium findings fixed; 5 minors deferred (see ledger summary in the final report). Suite 133/133, `pnpm smoke` 5/5 venues on both trades after fixes.
+- Manifest permissions after fixes: `sidePanel`, `storage` + the four venue hosts.
+
+### Cost
+
+- `/cost`: run by the user at session end (not available to the agent).
