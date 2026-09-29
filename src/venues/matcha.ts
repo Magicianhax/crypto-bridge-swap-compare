@@ -11,7 +11,9 @@ interface MatchaCross {
   result?: { quote?: { buyAmount?: string; estimatedTimeSeconds?: number; steps?: { provider?: string }[]; fees?: MatchaFees } };
 }
 
-const SWAP_PATHS = new Set(['/api/swap/price', '/api/swap/quote']);
+// Same-chain quotes: the classic swap API, plus the intent (gasless) flow Matcha uses for many token sales,
+// where gas is taken from the output and buyAmount is already net of it.
+const SWAP_PATHS = new Set(['/api/swap/price', '/api/swap/quote', '/api/intents/price', '/api/intents/quote', '/api/gasless/price', '/api/gasless/quote']);
 const CROSS_PATH = '/api/cross-chain/quote';
 
 /** Matcha names bridge providers like "across_v4"; show "Across V4". */
@@ -35,7 +37,8 @@ export const matcha: VenueAdapter = {
   id: 'matcha',
   label: 'Matcha',
   host: 'matcha.xyz',
-  timeoutMs: 40_000,
+  // Matcha's page can take over a minute to become interactive (72 s measured on a mainnet swap).
+  timeoutMs: 120_000,
   amountInput: { selector: 'input[placeholder="0.0"]', afterMs: 8_000 },
 
   buildUrl(trade: Trade): string {

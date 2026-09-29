@@ -8,9 +8,12 @@ import { resolve } from 'node:path';
 const EXT = resolve('.output/chrome-mv3');
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const NATIVE = '0x0000000000000000000000000000000000000000';
+const USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+const USDC_ETH = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const TRADES = [
   { name: '0.1 ETH Arbitrum -> ETH Base', from: [42161, NATIVE], to: [8453, NATIVE] },
   { name: '0.1 ETH -> USDC on Base', from: [8453, NATIVE], to: [8453, USDC_BASE] },
+  { name: '4000 USDT -> USDC on Ethereum', from: [1, USDT_ETH], to: [1, USDC_ETH], amount: '4000' },
 ];
 const SHOTS = process.env.SMOKE_SHOTS;
 
@@ -45,9 +48,9 @@ let failed = false;
 for (const [i, t] of TRADES.entries()) {
   await pick('from', t.from);
   await pick('to', t.to);
-  await page.fill('#amount', '0.1');
+  await page.fill('#amount', t.amount ?? '0.1');
   await page.click('button[type="submit"]');
-  await page.waitForFunction(() => document.querySelectorAll('#cards li.card').length > 0 && !document.querySelector('#cards li.card.loading'), null, { timeout: 60_000 });
+  await page.waitForFunction(() => document.querySelectorAll('#cards li.card').length > 0 && !document.querySelector('#cards li.card.loading'), null, { timeout: 150_000 });
   const cards = await page.$$eval('#cards li.card', (items) => items.map((li) => li.innerText.replace(/\s+/g, ' ').trim()));
   const quoted = await page.$$eval('#cards li.card.quote', (items) => items.length);
   console.log(`\n== ${t.name}: ${quoted} venues quoted`);

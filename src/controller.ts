@@ -195,6 +195,8 @@ export class Controller {
     if (quotes === null) {
       const seen = this.seen.get(venue);
       if (seen && capture.done) seen.ignored += 1;
+      // A late capture can change why a timed-out venue has no quote.
+      if (this.results.get(venue)?.status === 'timeout') this.set(venue, 'timeout', [], this.timeoutReason(venue));
       return;
     }
     const first = quotes[0];

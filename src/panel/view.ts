@@ -95,9 +95,9 @@ export function summarize(cards: VenueCard[], toSymbol: string, by: RankBy = 'va
   }
   const head = `${winner.label} pays most: ${winner.receive} ${toSymbol}`;
   const jumper = cards.find((c) => c.venue === 'jumper' && c.state === 'quote');
-  if (!jumper || jumper.best || jumper.deltaPct === undefined || jumper.deltaPct === 0) return `${head}.`;
-  const ahead = (-jumper.deltaPct / (100 + jumper.deltaPct)) * 100;
-  return `${head}, ${fmtPct(ahead)} more than Jumper.`;
+  if (!jumper || jumper.best || jumper.deltaPct === undefined) return `${head}.`;
+  const ahead = fmtPct((-jumper.deltaPct / (100 + jumper.deltaPct)) * 100);
+  return ahead === '0%' ? `${head}, about the same as Jumper.` : `${head}, ${ahead} more than Jumper.`;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, className: string, text?: string): HTMLElementTagNameMap[K] {

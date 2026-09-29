@@ -12,12 +12,14 @@ export default defineContentScript({
     let generation: number | null = null;
     const pending: Capture[] = [];
     const listening = new AbortController();
+    let stopFill: (() => void) | null = null;
 
     const forward = (capture: Capture) => {
       if (generation === null) {
         pending.push(capture);
         return;
       }
+      stopFill?.(); // the page has quoted; stop typing the amount
       const message: RuntimeMessage = { type: 'capture', generation, capture };
       void browser.runtime.sendMessage(message).catch(() => undefined);
     };
@@ -44,6 +46,6 @@ export default defineContentScript({
     pending.splice(0).forEach(forward);
     const arm: PageMessage = { source: MSG_SOURCE, kind: 'arm' };
     window.postMessage(arm, window.location.origin);
-    if (reply.fill) scheduleFill(document, reply.fill);
+    if (reply.fill) stopFill = scheduleFill(document, reply.fill);
   },
 });

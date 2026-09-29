@@ -12,17 +12,24 @@ export function fillAmount(doc: Document, selector: string, value: string): bool
   return true;
 }
 
-/** After fill.afterMs, fills the input once it exists and is still empty; retries every second, `tries` times. */
-export function scheduleFill(doc: Document, fill: FillRequest, tries = 20): () => void {
+/**
+ * After fill.afterMs, keeps the amount in the input once a second for `tries` seconds, refilling it
+ * whenever it is empty: a slow page (Matcha can take over a minute to hydrate) wipes an early fill when it loads.
+ * Call the returned function to stop, e.g. once the page has quoted.
+ */
+export function scheduleFill(doc: Document, fill: FillRequest, tries = 150): () => void {
   let handle: ReturnType<typeof setTimeout> | undefined;
   let left = tries;
+  let stopped = false;
   const attempt = () => {
+    if (stopped) return;
     left -= 1;
-    const input = doc.querySelector<HTMLInputElement>(fill.selector);
-    if (input && input.value !== '') return;
-    if (fillAmount(doc, fill.selector, fill.value)) return;
+    fillAmount(doc, fill.selector, fill.value);
     if (left > 0) handle = setTimeout(attempt, 1000);
   };
   handle = setTimeout(attempt, fill.afterMs);
-  return () => clearTimeout(handle);
+  return () => {
+    stopped = true;
+    clearTimeout(handle);
+  };
 }

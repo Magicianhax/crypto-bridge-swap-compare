@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NATIVE } from '../../src/lib/tokens';
+import { findToken, NATIVE } from '../../src/lib/tokens';
 import { matcha } from '../../src/venues/matcha';
 import { bridgeTrade, loadCapture, swapTrade } from '../helpers';
 
@@ -26,11 +26,12 @@ describe('Matcha', () => {
     expect(matcha.matches(new URL('https://matcha.xyz/api/swap/quote?chainId=8453'))).toBe(true);
     expect(matcha.matches(new URL('https://matcha.xyz/api/cross-chain/quote?originChain=1'))).toBe(true);
     expect(matcha.matches(new URL('https://matcha.xyz/api/price/usd'))).toBe(false);
+    expect(matcha.matches(new URL('https://matcha.xyz/api/tokens/info'))).toBe(false);
   });
 
   it('types the amount when the URL value does not take', () => {
     expect(matcha.amountInput).toEqual({ selector: 'input[placeholder="0.0"]', afterMs: 8000 });
-    expect(matcha.timeoutMs).toBe(40_000);
+    expect(matcha.timeoutMs).toBe(120_000);
   });
 
   it('reads a swap price net of the 0x fee', () => {
@@ -62,5 +63,25 @@ describe('Matcha sell-side check', () => {
   it('ignores a quote for a different amount or origin chain', () => {
     expect(matcha.parse(loadCapture('matcha', 'swap'), { ...swapTrade(), amount: '0.2' })).toBeNull();
     expect(matcha.parse(loadCapture('matcha', 'bridge'), { ...bridgeTrade(), fromChainId: 10 })).toBeNull();
+  });
+});
+
+describe('Matcha intents (gasless) quotes', () => {
+  const stableSwap = () => {
+    const usdt = findToken(1, '0xdAC17F958D2ee523a2206206994597C13D831ec7');
+    const usdc = findToken(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48');
+    if (!usdt || !usdc) throw new Error('missing built-in token');
+    return { fromChainId: 1, toChainId: 1, fromToken: { ...usdt }, toToken: { ...usdc }, amount: '4000' };
+  };
+
+  it('matches the intents and gasless endpoints', () => {
+    expect(matcha.matches(new URL('https://matcha.xyz/api/intents/price?chainId=1'))).toBe(true);
+    expect(matcha.matches(new URL('https://matcha.xyz/api/intents/quote?chainId=1'))).toBe(true);
+    expect(matcha.matches(new URL('https://matcha.xyz/api/gasless/price?chainId=1'))).toBe(true);
+  });
+
+  it('reads the net amount Matcha quotes after taking gas from the output', () => {
+    const [quote] = matcha.parse(loadCapture('matcha', 'intents'), stableSwap()) ?? [];
+    expect(quote).toMatchObject({ venue: 'matcha', route: 'Uniswap_V4', toAmount: '3997160496', toDecimals: 6, venueFee: { label: 'None', usd: 0 } });
   });
 });

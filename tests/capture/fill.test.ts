@@ -41,6 +41,28 @@ describe('scheduleFill', () => {
     expect(input()?.value).toBe('0.1');
   });
 
+  it('fills again when a slow page resets the input while it loads', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<input placeholder="0.0">';
+    scheduleFill(document, { selector: SELECTOR, afterMs: 8000, value: '0.1' });
+    vi.advanceTimersByTime(8000);
+    expect(input()?.value).toBe('0.1');
+    document.body.innerHTML = '<input placeholder="0.0">'; // hydration replaced the input
+    vi.advanceTimersByTime(1000);
+    expect(input()?.value).toBe('0.1');
+  });
+
+  it('stops filling once stopped (the first quote arrived)', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<input placeholder="0.0">';
+    const stop = scheduleFill(document, { selector: SELECTOR, afterMs: 8000, value: '0.1' });
+    vi.advanceTimersByTime(8000);
+    stop();
+    document.body.innerHTML = '<input placeholder="0.0">';
+    vi.advanceTimersByTime(5000);
+    expect(input()?.value).toBe('');
+  });
+
   it('gives up after the given number of tries', () => {
     vi.useFakeTimers();
     scheduleFill(document, { selector: SELECTOR, afterMs: 8000, value: '0.1' }, 2);

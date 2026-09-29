@@ -1,0 +1,7 @@
+{
+ "url": "https://matcha.xyz/api/intents/price?chainId=1&buyToken=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&sellToken=0xdac17f958d2ee523a2206206994597c13d831ec7&sellAmount=4000000000&slippageBps=8",
+ "method": "GET",
+ "reqBody": "",
+ "status": 200,
+ "text": "{\"allowanceTarget\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"approval\":null,\"blockNumber\":\"26083604\",\"buyAmount\":\"3997160496\",\"buyToken\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"fees\":{\"integratorFee\":null,\"integratorFees\":null,\"zeroExFee\":null,\"gasFee\":{\"amount\":\"1461630\",\"token\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"type\":\"gas\"}},\"issues\":{\"allowance\":null,\"balance\":null,\"simulationIncomplete\":false,\"invalidSourcesPassed\":[]},\"minBuyAmount\":\"3993962768\",\"route\":{\"fills\":[{\"from\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"to\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"source\":\"Uniswap_V4\",\"proportionBps\":\"10000\"}],\"tokens\":[{\"address\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"symbol\":\"USDT\"},{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"symbol\":\"USDC\"}]},\"sellAmount\":\"4000000000\",\"sellToken\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"target\":\"0x4563b9378b4ed1f35b3107d1d8e14c25a05898a4\",\"tokenMetadata\":{\"buyToken\":{\"buyTaxBps\":\"0\",\"sellTaxBps\":null,\"transferTaxBps\":\"0\"},\"sellToken\":{\"buyTaxBps\":null,\"sellTaxBps\":\"0\",\"transferTaxBps\":\"0\"}},\"trade\":null,\"zid\":\"0x47b9689b154de69b0c6aa07e\",\"liquidityAvailable\":true}"
+}

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { findToken, NATIVE } from '../src/lib/tokens';
 import type { Capture, Token, Trade } from '../src/types';
 
-export function loadCapture(venue: string, kind: 'bridge' | 'swap'): Capture {
+export function loadCapture(venue: string, kind: 'bridge' | 'swap' | 'intents'): Capture {
   const path = new URL(`./fixtures/${venue}/${kind}.json`, import.meta.url);
   const raw = JSON.parse(readFileSync(path, 'utf8')) as Omit<Capture, 'id' | 'done'>;
   return { id: 1, done: true, ...raw };

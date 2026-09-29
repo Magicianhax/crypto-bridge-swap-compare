@@ -110,7 +110,9 @@ describe('Controller', () => {
     await controller.compare(bridgeTrade());
     vi.advanceTimersByTime(30_000);
     expect(status()).toEqual({ jumper: 'timeout', 'jumper-advanced': 'timeout', bungee: 'timeout', relay: 'timeout', matcha: 'loading' });
-    vi.advanceTimersByTime(10_000);
+    vi.advanceTimersByTime(89_000);
+    expect(status().matcha).toBe('loading');
+    vi.advanceTimersByTime(1_000);
     expect(status().matcha).toBe('timeout');
   });
 
@@ -124,6 +126,16 @@ describe('Controller', () => {
     expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Quotes were for a different trade' });
     expect(result('bungee')).toMatchObject({ status: 'timeout', error: 'Page never asked for a quote' });
     expect(result('relay')).toMatchObject({ status: 'timeout', error: 'Page did not load' });
+  });
+
+  it('updates the timeout reason when a late quote turns out to be for another trade', async () => {
+    const { controller, result } = setup();
+    await controller.compare(swapTrade());
+    controller.hello(TAB.jumper);
+    vi.advanceTimersByTime(30_000);
+    expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Page never asked for a quote' });
+    controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'));
+    expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Quotes were for a different trade' });
   });
 
   it('fills unknown token decimals from another venue', async () => {

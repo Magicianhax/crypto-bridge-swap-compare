@@ -77,3 +77,13 @@ describe('renderCards', () => {
     expect(list.querySelector('.route')?.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 });
+
+describe('summarize ties', () => {
+  it('says "about the same" when the gap to Jumper rounds to zero', () => {
+    const tie: VenueResult[] = [
+      { venue: 'bungee', status: 'ok', updatedAt: 1, quotes: [quote({ venue: 'bungee', toAmount: '100000001' })] },
+      { venue: 'jumper', status: 'ok', updatedAt: 1, quotes: [quote({ toAmount: '100000000' })] },
+    ];
+    expect(summarize(buildCards(tie), 'USDC')).toBe('Bungee pays most: 100.000001 USDC, about the same as Jumper.');
+  });
+});
