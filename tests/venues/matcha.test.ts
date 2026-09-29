@@ -42,7 +42,7 @@ describe('Matcha', () => {
 
   it('reads a cross-chain quote and its integrator fee', () => {
     const [quote] = matcha.parse(loadCapture('matcha', 'bridge'), bridgeTrade()) ?? [];
-    expect(quote).toMatchObject({ route: 'across_v4', toAmount: '99569767892156631', toDecimals: 18, etaSec: 3 });
+    expect(quote).toMatchObject({ route: 'Across V4', toAmount: '99569767892156631', toDecimals: 18, etaSec: 3 });
     expect(quote?.venueFee?.pct).toBeCloseTo(0.4, 3);
   });
 

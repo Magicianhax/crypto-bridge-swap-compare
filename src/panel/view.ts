@@ -1,42 +1,90 @@
-import { fmtDelta, fmtEta, fmtFee, fmtGas, fmtUsd } from '../lib/format';
-import { rankQuotes } from '../lib/rank';
+import { fmtDelta, fmtEta, fmtFee, fmtGas, fmtPct, fmtUsd } from '../lib/format';
+import { pickVenueBest, rankQuotes, type RankedQuote } from '../lib/rank';
 import { formatUnits } from '../lib/units';
-import type { VenueId, VenueResult } from '../types';
+import type { VenueId, VenueResult, VenueStatus } from '../types';
 import { ADAPTERS } from '../venues';
+import { icon } from './icons';
+import { logo } from './marks';
 
-export type Row =
-  | { kind: 'quote'; venue: VenueId; venueLabel: string; route: string; receive: string; usd: string; delta: string; best: boolean; fee: string; gas: string; eta: string }
-  | { kind: 'status'; venue: VenueId; venueLabel: string; text: string; tone: 'muted' | 'error' };
+export const VENUE_LOGO: Record<VenueId, string> = {
+  jumper: 'jumper.png',
+  'jumper-advanced': 'jumper.png',
+  bungee: 'bungee.webp',
+  relay: 'relay.webp',
+  matcha: 'matcha.webp',
+};
 
-const STATUS_TEXT = { loading: 'Loading…', empty: 'No routes for this trade', timeout: 'No quote in time' } as const;
+export type CardState = 'quote' | Exclude<VenueStatus, 'ok' | 'idle'>;
 
-export function buildRows(results: VenueResult[], toSymbol: string): Row[] {
-  const ranked = rankQuotes(results.filter((r) => r.status === 'ok').flatMap((r) => r.quotes));
-  const rows: Row[] = ranked.map((q) => ({
-    kind: 'quote',
+export interface VenueCard {
+  venue: VenueId;
+  label: string;
+  logo: string;
+  state: CardState;
+  best: boolean;
+  /** how many routes the venue quoted; the card shows only its pick */
+  routes: number;
+  route?: string;
+  receive?: string;
+  usd?: string;
+  delta?: string;
+  deltaPct?: number;
+  fee?: string;
+  gas?: string;
+  eta?: string;
+  note?: string;
+}
+
+const STATE_ORDER: Record<CardState, number> = { quote: 0, loading: 1, empty: 2, timeout: 3, error: 4 };
+
+function note(r: VenueResult): string {
+  if (r.status === 'loading') return 'Reading the quote…';
+  if (r.status === 'empty') return 'No route for this trade';
+  if (r.status === 'error') return `Failed: ${r.error ?? 'unknown error'}`;
+  return `No quote: ${r.error ?? 'no response in time'}`;
+}
+
+/** One card per venue: its single best route (amount first, speed as the tiebreak), best venue first. */
+export function buildCards(results: VenueResult[]): VenueCard[] {
+  const picks = new Map<VenueId, { result: VenueResult; pick: RankedQuote }>();
+  for (const result of results) {
+    if (result.status !== 'ok') continue;
+    const pick = pickVenueBest(result.quotes);
+    if (pick) picks.set(result.venue, { result, pick });
+  }
+  const ranked = rankQuotes([...picks.values()].map((p) => p.pick));
+  const cards: VenueCard[] = ranked.map((q) => ({
     venue: q.venue,
-    venueLabel: ADAPTERS[q.venue].label,
+    label: ADAPTERS[q.venue].label,
+    logo: VENUE_LOGO[q.venue],
+    state: 'quote',
+    best: q.best,
+    routes: picks.get(q.venue)?.result.quotes.length ?? 1,
     route: q.route,
-    receive: `${formatUnits(q.toAmount, q.toDecimals)} ${toSymbol}`,
+    receive: formatUnits(q.toAmount, q.toDecimals),
     usd: fmtUsd(q.toAmountUsd),
     delta: fmtDelta(q.best, q.deltaPct),
-    best: q.best,
+    deltaPct: q.deltaPct,
     fee: fmtFee(q.venueFee),
     gas: fmtGas(q.gasUsd),
     eta: fmtEta(q.etaSec),
   }));
   for (const r of results) {
     if (r.status === 'ok' || r.status === 'idle') continue;
-    const venueLabel = ADAPTERS[r.venue].label;
-    rows.push(
-      r.status === 'error'
-        ? { kind: 'status', venue: r.venue, venueLabel, text: `Failed: ${r.error ?? 'unknown error'}`, tone: 'error' }
-        : r.status === 'timeout' && r.error
-          ? { kind: 'status', venue: r.venue, venueLabel, text: `No quote: ${r.error}`, tone: 'muted' }
-          : { kind: 'status', venue: r.venue, venueLabel, text: STATUS_TEXT[r.status], tone: 'muted' },
-    );
+    cards.push({ venue: r.venue, label: ADAPTERS[r.venue].label, logo: VENUE_LOGO[r.venue], state: r.status, best: false, routes: 0, note: note(r) });
   }
-  return rows;
+  return cards.sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]);
+}
+
+/** One line naming the winner and, when Jumper quoted too, how far ahead of Jumper it is. */
+export function summarize(cards: VenueCard[], toSymbol: string): string {
+  const winner = cards.find((c) => c.state === 'quote' && c.best);
+  if (!winner) return '';
+  const head = `${winner.label} pays most: ${winner.receive} ${toSymbol}`;
+  const jumper = cards.find((c) => c.venue === 'jumper' && c.state === 'quote');
+  if (!jumper || jumper.best || jumper.deltaPct === undefined || jumper.deltaPct === 0) return `${head}.`;
+  const ahead = (-jumper.deltaPct / (100 + jumper.deltaPct)) * 100;
+  return `${head}, ${fmtPct(ahead)} more than Jumper.`;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, className: string, text?: string): HTMLElementTagNameMap[K] {
@@ -46,34 +94,54 @@ function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, classN
   return node;
 }
 
+function fact(doc: Document, label: string, value: string, className = ''): HTMLDivElement {
+  const row = el(doc, 'div', `fact ${className}`.trim());
+  row.append(el(doc, 'dt', '', label), el(doc, 'dd', '', value));
+  return row;
+}
+
 /** Venue-supplied strings only ever reach the DOM through textContent. */
-export function renderRows(list: HTMLOListElement, rows: Row[]): void {
+export function renderCards(list: HTMLElement, cards: VenueCard[], toSymbol = ''): void {
   const doc = list.ownerDocument;
+  // Live updates re-render every card; only an amount that actually changed gets the settle animation.
+  const shown = new Map([...list.querySelectorAll<HTMLElement>('li.card')].map((li) => [li.dataset.venue, li.querySelector('.amount')?.firstChild?.textContent ?? '']));
   list.replaceChildren(
-    ...rows.map((row) => {
-      if (row.kind === 'status') {
-        const item = el(doc, 'li', `status ${row.tone}`);
-        item.append(el(doc, 'span', 'venue', row.venueLabel), el(doc, 'span', 'text', row.text));
+    ...cards.map((card) => {
+      const item = el(doc, 'li', `card ${card.state}${card.best ? ' best' : ''}`);
+      item.dataset.venue = card.venue;
+      const head = el(doc, 'div', 'card-head');
+      head.append(logo(doc, `/logos/venues/${card.logo}`, card.label, 'venue-logo'), el(doc, 'span', 'venue', card.label));
+      if (card.best) head.append(el(doc, 'span', 'badge', 'Best'));
+      item.append(head);
+
+      if (card.state !== 'quote') {
+        if (card.state === 'loading') item.append(el(doc, 'span', 'skeleton wide'), el(doc, 'span', 'skeleton'));
+        item.append(el(doc, 'p', 'note', card.note ?? ''));
         return item;
       }
-      const item = el(doc, 'li', row.best ? 'quote best' : 'quote');
-      const receive = el(doc, 'span', 'receive', row.receive);
-      if (row.usd) receive.append(el(doc, 'small', 'usd', row.usd));
-      const head = el(doc, 'div', 'line1');
-      head.append(el(doc, 'span', 'venue', row.venueLabel), el(doc, 'span', 'route', row.route), receive);
-      const open = el(doc, 'button', 'open', 'Open');
-      open.type = 'button';
-      open.dataset.venue = row.venue;
-      open.setAttribute('aria-label', `Open ${row.venueLabel} with this trade`);
-      const meta = el(doc, 'div', 'line2');
-      meta.append(
-        el(doc, 'span', 'delta', row.delta),
-        el(doc, 'span', 'fee', `Fee ${row.fee}`),
-        el(doc, 'span', 'gas', `Gas ${row.gas}`),
-        el(doc, 'span', 'eta', `ETA ${row.eta}`),
-        open,
+
+      const amount = el(doc, 'p', shown.get(card.venue) === card.receive ? 'amount' : 'amount fresh', card.receive ?? '');
+      if (toSymbol) amount.append(el(doc, 'span', 'unit', ` ${toSymbol}`));
+      const route = el(doc, 'p', 'route', card.route ?? '');
+      route.title = card.route ?? '';
+      item.append(amount, el(doc, 'p', 'usd', card.usd || ' '), route);
+
+      const facts = el(doc, 'dl', 'facts');
+      facts.append(
+        fact(doc, 'vs best', card.delta ?? '', 'delta'),
+        fact(doc, 'Venue fee', card.fee ?? '—'),
+        fact(doc, 'Gas', card.gas ?? '—'),
+        fact(doc, 'Time', card.eta ?? '—'),
+        fact(doc, 'Routes', String(card.routes)),
       );
-      item.append(head, meta);
+      item.append(facts);
+
+      const open = el(doc, 'button', 'open');
+      open.type = 'button';
+      open.dataset.venue = card.venue;
+      open.setAttribute('aria-label', `Open ${card.label} with this trade`);
+      open.append(el(doc, 'span', '', 'Open site'), icon(doc, 'arrowUpRight', 14));
+      item.append(open);
       return item;
     }),
   );

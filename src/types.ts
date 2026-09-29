@@ -9,6 +9,10 @@ export interface Token {
   symbol: string;
   /** null for a pasted address until a venue reports it */
   decimals: number | null;
+  /** display name, built-in tokens only */
+  name?: string;
+  /** logo file name in public/logos/tokens, built-in tokens only */
+  logo?: string;
 }
 
 export interface Trade {

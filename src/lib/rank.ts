@@ -6,6 +6,16 @@ export interface RankedQuote extends Quote {
   deltaPct: number;
 }
 
+/** A route this close to a venue's top amount (percent) is worth taking when it is faster. */
+export const NEAR_BEST_PCT = 0.05;
+
+/** One venue's pick: its highest amount, or the fastest route within NEAR_BEST_PCT of it. */
+export function pickVenueBest(quotes: Quote[]): RankedQuote | undefined {
+  const near = rankQuotes(quotes).filter((q) => q.deltaPct >= -NEAR_BEST_PCT);
+  const eta = (q: Quote) => q.etaSec ?? Number.MAX_SAFE_INTEGER;
+  return near.reduce<RankedQuote | undefined>((pick, q) => (pick === undefined || eta(q) < eta(pick) ? q : pick), undefined);
+}
+
 export function rankQuotes(quotes: Quote[]): RankedQuote[] {
   const first = quotes[0];
   if (!first) return [];

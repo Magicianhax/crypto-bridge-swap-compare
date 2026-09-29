@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rankQuotes } from '../../src/lib/rank';
+import { pickVenueBest, rankQuotes } from '../../src/lib/rank';
 import type { Quote, VenueId } from '../../src/types';
 
 const q = (venue: VenueId, toAmount: string, toDecimals = 6, etaSec?: number): Quote => ({
@@ -32,5 +32,18 @@ describe('rankQuotes', () => {
     const ranked = rankQuotes([q('relay', '1000000', 6), q('jumper', '2000000000000000000', 18)]);
     expect(ranked.map((r) => r.venue)).toEqual(['jumper', 'relay']);
     expect(ranked[1]?.deltaPct).toBe(-50);
+  });
+});
+
+describe('pickVenueBest', () => {
+  it('takes the highest amount', () => {
+    expect(pickVenueBest([q('jumper', '100', 6, 5), q('jumper', '300', 6, 900)])?.toAmount).toBe('300');
+  });
+  it('prefers a faster route within 0.05% of the top amount', () => {
+    const pick = pickVenueBest([q('jumper', '1000000', 6, 600), q('jumper', '999600', 6, 5), q('jumper', '999000', 6, 1)]);
+    expect(pick?.toAmount).toBe('999600');
+  });
+  it('returns nothing for no quotes', () => {
+    expect(pickVenueBest([])).toBeUndefined();
   });
 });

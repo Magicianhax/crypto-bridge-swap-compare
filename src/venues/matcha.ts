@@ -14,6 +14,9 @@ interface MatchaCross {
 const SWAP_PATHS = new Set(['/api/swap/price', '/api/swap/quote']);
 const CROSS_PATH = '/api/cross-chain/quote';
 
+/** Matcha names bridge providers like "across_v4"; show "Across V4". */
+const providerName = (id: string): string => id.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
 const pctOf = (part: string, whole: bigint): number =>
   whole === 0n ? 0 : Number((BigInt(part) * 1_000_000n) / whole) / 10_000;
 
@@ -87,7 +90,7 @@ export const matcha: VenueAdapter = {
       return [
         {
           venue: 'matcha',
-          route: (quote.steps ?? []).map((s) => s.provider ?? '?').join(' > ') || 'Matcha',
+          route: (quote.steps ?? []).map((s) => providerName(s.provider ?? '?')).join(' > ') || 'Matcha',
           toAmount: amount,
           toDecimals: decimals,
           venueFee: matchaFee(quote.fees, sellToken, sellAmount, buyToken, amount),

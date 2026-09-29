@@ -1,49 +1,67 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { buildRows, renderRows } from '../../src/panel/view';
+import { buildCards, renderCards, summarize } from '../../src/panel/view';
 import type { Quote, VenueResult } from '../../src/types';
 
 const quote = (over: Partial<Quote>): Quote => ({ venue: 'jumper', route: 'AcrossV4', toAmount: '1000000', toDecimals: 6, ...over });
 
 const results: VenueResult[] = [
-  { venue: 'jumper', status: 'ok', updatedAt: 1, quotes: [quote({ route: 'A', toAmount: '1000000', etaSec: 1 }), quote({ route: 'B', toAmount: '3000000', toAmountUsd: 3 })] },
+  { venue: 'jumper', status: 'ok', updatedAt: 1, quotes: [quote({ route: 'A', toAmount: '1000000', etaSec: 1 }), quote({ route: 'B', toAmount: '2000000', etaSec: 20 })] },
   { venue: 'jumper-advanced', status: 'idle', quotes: [], updatedAt: 0 },
-  { venue: 'bungee', status: 'ok', updatedAt: 1, quotes: [quote({ venue: 'bungee', route: 'C', toAmount: '2000000' })] },
+  { venue: 'bungee', status: 'ok', updatedAt: 1, quotes: [quote({ venue: 'bungee', route: 'C', toAmount: '3000000', toAmountUsd: 3 })] },
   { venue: 'relay', status: 'loading', quotes: [], updatedAt: 1 },
   { venue: 'matcha', status: 'error', quotes: [], error: 'HTTP 500', updatedAt: 1 },
 ];
 
-describe('buildRows', () => {
-  it('ranks all quotes, then lists venue states', () => {
-    const rows = buildRows(results, 'USDC');
-    expect(rows.map((r) => (r.kind === 'quote' ? r.route : `${r.venueLabel}: ${r.text}`))).toEqual(['B', 'C', 'A', 'Relay: Loading…', 'Matcha: Failed: HTTP 500']);
-    const best = rows[0];
-    expect(best?.kind === 'quote' && best).toMatchObject({ best: true, delta: 'Best', receive: '3 USDC', usd: '$3.00', venueLabel: 'Jumper' });
-    const last = rows[2];
-    expect(last?.kind === 'quote' && last.delta).toBe('-66.667%');
+describe('buildCards', () => {
+  it('gives each venue one card with its best route, winner first', () => {
+    const cards = buildCards(results);
+    expect(cards.map((c) => `${c.venue}:${c.state}`)).toEqual(['bungee:quote', 'jumper:quote', 'relay:loading', 'matcha:error']);
+    expect(cards[0]).toMatchObject({ best: true, route: 'C', receive: '3', usd: '$3.00', delta: 'Best', routes: 1, label: 'Bungee' });
+    expect(cards[1]).toMatchObject({ best: false, route: 'B', receive: '2', delta: '-33.333%', routes: 2 });
+    expect(cards[3]).toMatchObject({ note: 'Failed: HTTP 500' });
+  });
+
+  it('explains a timeout', () => {
+    const [card] = buildCards([{ venue: 'jumper', status: 'timeout', quotes: [], error: 'Page never asked for a quote', updatedAt: 1 }]);
+    expect(card).toMatchObject({ state: 'timeout', note: 'No quote: Page never asked for a quote' });
   });
 });
 
-describe('renderRows', () => {
-  it('renders one list item per row with an Open button on quotes', () => {
+describe('summarize', () => {
+  it('names the winner and how much it beats Jumper by', () => {
+    expect(summarize(buildCards(results), 'USDC')).toBe('Bungee pays most: 3 USDC, 50% more than Jumper.');
+  });
+  it('stays quiet until a venue has quoted', () => {
+    expect(summarize(buildCards([{ venue: 'relay', status: 'loading', quotes: [], updatedAt: 1 }]), 'ETH')).toBe('');
+  });
+});
+
+describe('renderCards', () => {
+  it('renders one card per venue with an Open button on quotes', () => {
     const list = document.createElement('ol');
-    renderRows(list, buildRows(results, 'USDC'));
-    expect(list.children).toHaveLength(5);
-    expect(list.querySelector('li.quote.best .receive')?.textContent).toContain('3 USDC');
-    expect(list.querySelector<HTMLButtonElement>('li.quote button.open')?.dataset.venue).toBe('jumper');
-    expect(list.querySelector('li.status.error')?.textContent).toContain('Failed: HTTP 500');
+    renderCards(list, buildCards(results));
+    expect(list.children).toHaveLength(4);
+    expect(list.querySelector('li.card.best .amount')?.textContent).toContain('3');
+    expect(list.querySelector('li.card.best .badge')?.textContent).toBe('Best');
+    expect(list.querySelector<HTMLButtonElement>('li.card button.open')?.dataset.venue).toBe('bungee');
+    expect(list.querySelector('li.card.error .note')?.textContent).toBe('Failed: HTTP 500');
+    expect(list.querySelector<HTMLImageElement>('li.card img.venue-logo')?.getAttribute('src')).toBe('/logos/venues/bungee.webp');
   });
 
-  it('shows the reason a venue timed out', () => {
-    const rows = buildRows([{ venue: 'jumper', status: 'timeout', quotes: [], error: 'Page never asked for a quote', updatedAt: 1 }], 'ETH');
-    expect(rows[0]).toMatchObject({ kind: 'status', text: 'No quote: Page never asked for a quote' });
+  it('animates an amount only when it changes', () => {
+    const list = document.createElement('ol');
+    renderCards(list, buildCards(results));
+    expect(list.querySelector('li.card.best .amount')?.classList.contains('fresh')).toBe(true);
+    renderCards(list, buildCards(results));
+    expect(list.querySelector('li.card.best .amount')?.classList.contains('fresh')).toBe(false);
   });
 
   it('renders venue text as text', () => {
     const list = document.createElement('ol');
     const hostile: VenueResult[] = [{ venue: 'relay', status: 'ok', updatedAt: 1, quotes: [quote({ venue: 'relay', route: '<img src=x onerror=alert(1)>' })] }];
-    renderRows(list, buildRows(hostile, 'USDC'));
-    expect(list.querySelector('img')).toBeNull();
-    expect(list.querySelector('.route')?.textContent).toBe('<img src=x onerror=alert(1)>');
+    renderCards(list, buildCards(hostile));
+    expect(list.querySelector('img:not(.venue-logo)')).toBeNull();
+    expect(list.querySelector('.route')?.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 });

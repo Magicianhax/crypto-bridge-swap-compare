@@ -7,42 +7,70 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main>
-      <form id="trade" novalidate>
-        <fieldset class="mode">
-          <legend class="sr-only">Trade type</legend>
-          <label><input type="radio" name="mode" value="swap" /> Swap</label>
-          <label><input type="radio" name="mode" value="bridge" checked /> Bridge</label>
-        </fieldset>
-        <div class="side">
-          <label class="field" for="fromChain">From</label>
-          <select id="fromChain"></select>
-          <select id="fromToken" aria-label="From token"></select>
-          <input id="fromTokenAddr" type="text" aria-label="From token address" placeholder="0x… token address" spellcheck="false" autocomplete="off" hidden />
-        </div>
-        <div class="side">
-          <label class="field" for="toChain">To</label>
-          <select id="toChain"></select>
-          <select id="toToken" aria-label="To token"></select>
-          <input id="toTokenAddr" type="text" aria-label="To token address" placeholder="0x… token address" spellcheck="false" autocomplete="off" hidden />
-        </div>
-        <div class="side">
-          <label class="field" for="amount">Amount</label>
-          <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.1" />
-        </div>
-        <p id="formError" role="alert" hidden></p>
+    <main class="app">
+      <header class="bar">
+        <h1 class="title">Quote Compare</h1>
+        <button type="button" id="popout" class="icon-btn" aria-label="Open in a wider window" title="Open in a wider window"></button>
+      </header>
+
+      <form id="ticket" class="ticket" novalidate>
+        <section class="leg" aria-labelledby="sendLabel">
+          <div class="leg-head">
+            <span id="sendLabel" class="leg-label">You send</span>
+            <span id="kind" class="kind"></span>
+          </div>
+          <div class="leg-body">
+            <input id="amount" class="amount-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.0" aria-labelledby="sendLabel" />
+            <button type="button" id="fromPick" class="pick" aria-haspopup="dialog"></button>
+          </div>
+        </section>
+
+        <button type="button" id="flip" class="flip" aria-label="Swap what you send and receive" title="Swap direction"></button>
+
+        <section class="leg" aria-labelledby="receiveLabel">
+          <div class="leg-head">
+            <span id="receiveLabel" class="leg-label">You receive</span>
+          </div>
+          <div class="leg-body">
+            <span id="receiveHint" class="receive-hint">Best quote after fees</span>
+            <button type="button" id="toPick" class="pick" aria-haspopup="dialog"></button>
+          </div>
+        </section>
+
+        <p id="formError" class="form-error" role="alert" hidden></p>
+
         <div class="actions">
-          <button type="submit">Compare</button>
-          <button type="button" id="refresh" disabled>Refresh</button>
+          <button type="submit" class="primary">Compare 5 venues</button>
+          <button type="button" id="refresh" class="icon-btn" aria-label="Refresh quotes" title="Refresh quotes" disabled></button>
         </div>
       </form>
-      <section aria-labelledby="quotesTitle">
-        <h2 id="quotesTitle">Quotes</h2>
-        <p id="banner" role="status"></p>
-        <ol id="results"></ol>
-        <p class="note">Amounts are what each site's own page quoted, after that site's fee. You sign on the venue's site.</p>
+
+      <section class="results" aria-labelledby="resultsTitle">
+        <div class="results-head">
+          <h2 id="resultsTitle">Best route per venue</h2>
+          <p id="summary" class="summary" aria-live="polite"></p>
+        </div>
+        <p id="banner" class="banner" role="status"></p>
+        <ol id="cards" class="cards"></ol>
+        <p id="empty" class="empty">Choose a trade and press Compare. Each venue's own page quotes it, and you see each venue's best route here.</p>
+        <p class="footnote">Amounts are what each site quoted, after its own fee. You sign on the venue's site.</p>
       </section>
     </main>
+
+    <dialog id="picker" class="picker" aria-labelledby="pickerTitle">
+      <div class="picker-head">
+        <h2 id="pickerTitle">Select a token</h2>
+        <button type="button" id="pickerClose" class="icon-btn" aria-label="Close"></button>
+      </div>
+      <div id="chainChips" class="chips" role="radiogroup" aria-label="Chain"></div>
+      <label class="search">
+        <span class="search-icon" aria-hidden="true"></span>
+        <span class="sr-only">Search tokens</span>
+        <input id="tokenSearch" type="search" placeholder="Search name or paste address" autocomplete="off" spellcheck="false" />
+      </label>
+      <ul id="tokenList" class="token-list" aria-label="Tokens"></ul>
+    </dialog>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
