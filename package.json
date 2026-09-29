@@ -12,7 +12,8 @@
     "build": "wxt build",
     "postinstall": "wxt prepare",
     "verify": "tsc --noEmit && oxlint . && vitest run",
-    "smoke": "wxt build && node scripts/smoke.mjs"
+    "smoke": "wxt build && node scripts/smoke.mjs",
+    "zip": "wxt zip"
   },
   "devDependencies": {
     "@types/node": "24.19.0",

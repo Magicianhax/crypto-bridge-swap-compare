@@ -25,7 +25,7 @@ When I'm about to bridge or swap, I want to see what each frontend would give me
 
 ## Constraints
 
-- Chains / networks: Ethereum, Arbitrum, Base, Optimism, Polygon, BNB; read only.
+- Chains / networks: 17 EVM chains (see README), read only.
 - Money: nothing moves value; the user signs on the venue site.
 - Regulatory / distribution: load-unpacked for now; no store listing in v1.
 
