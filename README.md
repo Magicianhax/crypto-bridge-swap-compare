@@ -26,11 +26,11 @@ See what Jumper, Jumper Advanced, Bungee, Relay and Matcha would each give you, 
 ---
 
 <p align="center">
-  <img src="docs/screenshots/pop-out.png" alt="Quote Compare in its wide pop-out window: five venues ranked for a 10,000 USDT to USDC bridge" width="100%" />
+  <img src="docs/screenshots/side-panel.png" alt="Quote Compare in the Chrome side panel next to a website" width="100%" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/side-panel.png" alt="Quote Compare in the Chrome side panel next to a website" width="100%" />
+  <img src="docs/screenshots/pop-out.png" alt="Quote Compare in its wide pop-out window: five venues ranked for a 10,000 USDT to USDC bridge" width="100%" />
 </p>
 
 ## Why
