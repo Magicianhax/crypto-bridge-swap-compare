@@ -1,105 +1,78 @@
 ---
 version: alpha
-name: "<PROJECT_NAME>"
-description: "<One line: the visual world this product lives in>"
+name: "Quote Compare"
+description: "A trade ticket in a narrow side panel: dense rows of numbers, one accent for action, nothing decorative."
 colors:
   primary: "#1A1C1E"
-  secondary: "#6C7278"
-  accent: "#B8422E"
+  secondary: "#5F656B"
+  accent: "#0F766E"
   surface: "#F7F5F2"
   surface-raised: "#FFFFFF"
   success: "#2E7D4F"
   danger: "#B3261E"
 typography:
-  display:
-    fontFamily: "<Display face, e.g. Instrument Serif>"
-    fontSize: 3rem
-    fontWeight: 400
-    lineHeight: 1.05
-    letterSpacing: -0.02em
-  h2:
-    fontFamily: "<Text face, e.g. Switzer>"
-    fontSize: 1.5rem
-    fontWeight: 600
-    lineHeight: 1.2
   body-md:
-    fontFamily: "<Text face>"
-    fontSize: 1rem
+    fontFamily: "system-ui"
+    fontSize: 0.875rem
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.45
   label:
-    fontFamily: "<Text face>"
-    fontSize: 0.8125rem
+    fontFamily: "system-ui"
+    fontSize: 0.75rem
     fontWeight: 500
     lineHeight: 1.3
   data:
-    fontFamily: "<Mono face, e.g. Geist Mono>"
+    fontFamily: "ui-monospace"
     fontSize: 0.875rem
     fontFeature: "tnum, zero"
 rounded:
   sm: 4px
   md: 8px
-  lg: 12px
 spacing:
   xs: 4px
   sm: 8px
-  md: 16px
-  lg: 24px
-  xl: 40px
+  md: 12px
+  lg: 16px
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.surface-raised}"
     rounded: "{rounded.md}"
-  card:
-    backgroundColor: "{colors.surface-raised}"
-    rounded: "{rounded.lg}"
-    padding: "{spacing.lg}"
-  badge-success:
-    backgroundColor: "{colors.success}"
-    textColor: "{colors.surface-raised}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-  toast-danger:
-    backgroundColor: "{colors.danger}"
-    textColor: "{colors.surface-raised}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
+  row:
+    backgroundColor: "{colors.surface}"
+    padding: "{spacing.sm}"
 ---
 
 ## Overview
 
-<Two or three sentences naming the world: a reference (a broadsheet, a Bloomberg terminal, a field notebook), the one memorable element, and what stays quiet around it. Never "modern, clean, minimal".>
+A broker's trade ticket squeezed into a 360 px side panel. The one memorable element is the ranked list: the best row's "Best" marker in green, every other row showing how far behind it is. Everything else stays quiet.
 
 ## Colors
 
-<Why each token exists and where it is allowed. One accent drives interaction; nothing else may be that hue. State body-text contrast (must be >= 4.5:1).>
+`accent` is the only interactive hue (Compare button, focus rings). `success` marks the best quote only. `danger` is for failed venues and form errors. Body text `primary` on `surface` is 15.6:1. Dark scheme mirrors these in `style.css` under `prefers-color-scheme: dark`.
 
 ## Typography
 
-<Which faces, licence status (free/commercial-OK or paid-mockup-only), how they are loaded (self-hosted from `public/fonts` or `@fontsource/*`; no runtime `fonts.googleapis.com` link). Two families max, differing in construction. Mono only for data, always `tabular-nums slashed-zero`.>
+System UI stack for text; `ui-monospace` for amounts and deltas, always `tabular-nums slashed-zero`. No web fonts: the extension ships no font files and loads nothing remote.
 
 ## Layout
 
-<Grid, max widths, the single spacing scale above, density stance (trading UIs: dense, no cards).>
+Single column, 16 px padding, 12 px gaps. Dense: result rows are two lines separated by hairlines, no cards.
 
 ## Elevation & Depth
 
-<Borders over shadows or the reverse; one rule. Border color is `{colors.secondary}` at a stated opacity (the spec has no border sub-token, so it lives here). No glassmorphism, glow, or gradient orbs.>
+Borders only, no shadows. Hairline border is `secondary` at 25% opacity.
 
 ## Shapes
 
-<Radius usage: which token for which element. Not one radius everywhere.>
+`sm` for inputs and selects, `md` for buttons and the mode switch.
 
 ## Components
 
-<Anything beyond the tokens above: states (empty, loading, error are mandatory), focus rings, icon set (one set per product).>
+Mode switch (Swap/Bridge), chain and token selects with an "Other token…" address field, amount field, Compare and Refresh buttons. Result states: quote row, loading row, failed row, timed-out row, empty row. Focus ring: 2 px `accent`.
 
 ## Do's and Don'ts
 
-- Do: every color, size and space value traces to a token in this file; `src/styles/tokens.css` is generated with `npx @google/design.md export --format css-tailwind`.
-- Do: motion answers a user action; 150-250 ms ease-out for product UI; `prefers-reduced-motion` path always.
-- Don't: ALL-CAPS eyebrows, middle dots, spaced em dashes, three identical feature cards, hover-scale on every card, fade-slide-up on every section, bounce/elastic easing on UI.
-- Don't: purple-to-blue gradients, pure #000/#fff text, gray-on-color text, unlabeled icon buttons.
-
-<!-- Lint: npx @google/design.md lint DESIGN.md -->
+- Do: every color and space value in `style.css` traces to this file.
+- Do: render venue-supplied text with `textContent` only.
+- Don't: gradients, glow, hover-scale, ALL-CAPS labels, decorative icons.
