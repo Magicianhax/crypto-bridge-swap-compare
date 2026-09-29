@@ -64,6 +64,8 @@ export interface Capture {
   status: number;
   text: string;
   done: boolean;
+  /** the page cancelled the stream before it finished (a newer request usually follows) */
+  aborted?: boolean;
 }
 
 /** Partial trade read from a venue page URL. Native tokens use NATIVE. */

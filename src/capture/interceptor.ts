@@ -99,6 +99,7 @@ async function pump(stream: ReadableStream<Uint8Array>, capture: Capture, emit: 
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let last = 0;
+  let aborted = false;
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -113,6 +114,7 @@ async function pump(stream: ReadableStream<Uint8Array>, capture: Capture, emit: 
     capture.text += decoder.decode();
   } catch {
     // The page aborted the stream (a newer quote replaced it): report what arrived.
+    aborted = true;
   }
-  emit({ ...capture, done: true });
+  emit({ ...capture, done: true, ...(aborted ? { aborted } : {}) });
 }

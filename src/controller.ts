@@ -207,7 +207,8 @@ export class Controller {
       }
       return;
     }
-    if (capture.done) this.set(venue, 'empty');
+    // A cut-off stream with no routes yet is not an answer; the page's next request is.
+    if (capture.done && !capture.aborted) this.set(venue, 'empty');
   }
 
   private set(venue: VenueId, status: VenueStatus, quotes: Quote[] = [], error?: string): void {

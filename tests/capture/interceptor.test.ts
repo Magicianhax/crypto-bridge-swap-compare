@@ -81,6 +81,20 @@ describe('installInterceptor', () => {
     expect(captures[0]).toMatchObject({ url: 'https://x.test/quote', method: 'PUT', reqBody: '' });
   });
 
+  it('marks a stream the page cancelled as aborted', async () => {
+    const encoder = new TextEncoder();
+    const broken = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('event: a\ndata: 1\n\n'));
+        controller.error(new Error('aborted by page'));
+      },
+    });
+    const { env, captures } = setup(async () => new Response(broken, { status: 200 }));
+    await env.fetch('https://api.example/quote/stream').catch(() => undefined);
+    await waitFor(() => captures.some((c) => c.done));
+    expect(captures.at(-1)).toMatchObject({ done: true, aborted: true });
+  });
+
   it('lets fetch failures reach the page without a capture', async () => {
     const { env, captures } = setup(async () => {
       throw new TypeError('network down');

@@ -160,6 +160,16 @@ describe('Controller', () => {
     expect(status().jumper).toBe('empty');
   });
 
+  it('keeps waiting when a stream was cut off before any route arrived', async () => {
+    const { controller, status } = setup();
+    await controller.compare(bridgeTrade());
+    const capture = loadCapture('bungee', 'bridge');
+    controller.onCapture(TAB.bungee, 1, { ...capture, text: capture.text.slice(0, 200), aborted: true });
+    expect(status().bungee).toBe('loading');
+    controller.onCapture(TAB.bungee, 1, { ...capture, id: 2 });
+    expect(status().bungee).toBe('ok');
+  });
+
   it('shows a build error for a chain a venue does not support', async () => {
     const { controller, result, status } = setup();
     const token = { chainId: 999, address: NATIVE, symbol: 'X', decimals: 18 };
