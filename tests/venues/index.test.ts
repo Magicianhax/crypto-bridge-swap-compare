@@ -43,6 +43,7 @@ describe('venue registry', () => {
       'https://matcha.xyz/*',
       'https://kyberswap.com/*',
       'https://app.uniswap.org/*',
+      'https://swap.defillama.com/*',
     ]);
   });
 });

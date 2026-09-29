@@ -1,6 +1,6 @@
 import { isRecord, isUint, num } from '../lib/json';
 import { EEEE, isNative, NATIVE, sameToken, venueAddress } from '../lib/tokens';
-import type { Address, Capture, Trade } from '../types';
+import type { Address, Capture, Quote, Trade, VenueId } from '../types';
 import type { VenueAdapter } from './types';
 import { compact, sellAmountMatches } from './url';
 
@@ -27,6 +27,40 @@ const API_SLUG: Record<string, string> = { bnb: 'bsc' };
 interface KyberHop { exchange?: string }
 interface KyberRoute {
   data?: { routeSummary?: { amountIn?: string; amountOut?: string; amountOutUsd?: string; gasUsd?: string; route?: KyberHop[][]; extraFee?: { feeAmount?: string } } };
+}
+
+/**
+ * Reads a KyberSwap routes response for this trade: null when it is for another trade, [] when it has no route.
+ * Shared with LlamaSwap, whose page asks KyberSwap too; `prefix` names the source in the route label.
+ */
+export function readKyberRoutes(capture: Capture, trade: Trade, venue: VenueId, prefix = ''): Quote[] | null {
+  const url = new URL(capture.url);
+  const slug = CHAINS.get(trade.toChainId);
+  if (trade.fromChainId !== trade.toChainId || !slug) return null;
+  if (url.pathname.split('/')[1] !== (API_SLUG[slug] ?? slug)) return null;
+  const p = url.searchParams;
+  if (!sameToken(p.get('tokenIn') ?? '', trade.fromToken.address) || !sameToken(p.get('tokenOut') ?? '', trade.toToken.address)) return null;
+  if (!sellAmountMatches(p.get('amountIn'), trade)) return null;
+  const decimals = trade.toToken.decimals;
+  if (decimals === null) return null;
+  const body = JSON.parse(capture.text) as unknown;
+  if (!isRecord(body)) throw new Error('KyberSwap: unexpected response');
+  const summary = (body as KyberRoute).data?.routeSummary;
+  const amount = summary?.amountOut;
+  if (!summary || !isUint(amount)) return [];
+  const exchanges = [...new Set((summary.route ?? []).flat().map((hop) => hop.exchange).filter((e): e is string => typeof e === 'string'))];
+  const fee = summary.extraFee?.feeAmount;
+  return [
+    {
+      venue,
+      route: prefix + (exchanges.slice(0, 3).join(' + ') || 'KyberSwap'),
+      toAmount: amount,
+      toDecimals: decimals,
+      toAmountUsd: num(summary.amountOutUsd),
+      gasUsd: num(summary.gasUsd),
+      venueFee: fee ? { label: 'KyberSwap fee' } : { label: 'None', usd: 0 },
+    },
+  ];
 }
 
 const asAddress = (s: string | undefined): Address | undefined => (s && /^0x[0-9a-fA-F]{40}$/.test(s) ? ((isNative(s) ? NATIVE : s) as Address) : undefined);
@@ -60,32 +94,6 @@ export const kyberswap: VenueAdapter = {
   },
 
   parse(capture: Capture, trade: Trade) {
-    const url = new URL(capture.url);
-    const slug = CHAINS.get(trade.toChainId);
-    if (trade.fromChainId !== trade.toChainId || !slug) return null;
-    if (url.pathname.split('/')[1] !== (API_SLUG[slug] ?? slug)) return null;
-    const p = url.searchParams;
-    if (!sameToken(p.get('tokenIn') ?? '', trade.fromToken.address) || !sameToken(p.get('tokenOut') ?? '', trade.toToken.address)) return null;
-    if (!sellAmountMatches(p.get('amountIn'), trade)) return null;
-    const decimals = trade.toToken.decimals;
-    if (decimals === null) return null;
-    const body = JSON.parse(capture.text) as unknown;
-    if (!isRecord(body)) throw new Error('KyberSwap: unexpected response');
-    const summary = (body as KyberRoute).data?.routeSummary;
-    const amount = summary?.amountOut;
-    if (!summary || !isUint(amount)) return [];
-    const exchanges = [...new Set((summary.route ?? []).flat().map((hop) => hop.exchange).filter((e): e is string => typeof e === 'string'))];
-    const fee = summary.extraFee?.feeAmount;
-    return [
-      {
-        venue: 'kyberswap',
-        route: exchanges.slice(0, 3).join(' + ') || 'KyberSwap',
-        toAmount: amount,
-        toDecimals: decimals,
-        toAmountUsd: num(summary.amountOutUsd),
-        gasUsd: num(summary.gasUsd),
-        venueFee: fee ? { label: 'KyberSwap fee' } : { label: 'None', usd: 0 },
-      },
-    ];
+    return readKyberRoutes(capture, trade, 'kyberswap');
   },
 };

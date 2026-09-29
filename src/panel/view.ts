@@ -14,6 +14,7 @@ export const VENUE_LOGO: Record<VenueId, string> = {
   matcha: 'matcha.webp',
   kyberswap: 'kyberswap.webp',
   uniswap: 'uniswap.webp',
+  llamaswap: 'llamaswap.webp',
 };
 
 export type CardState = 'quote' | Exclude<VenueStatus, 'ok' | 'idle'>;

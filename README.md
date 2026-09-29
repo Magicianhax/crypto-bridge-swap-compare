@@ -4,7 +4,7 @@
 
 # Crypto Bridge & Swap Compare
 
-**A Chrome extension that compares crypto swap and bridge quotes across Jumper, Jumper Advanced, Bungee, Relay and Matcha, side by side, fees included.**<br />
+**A Chrome extension that compares crypto swap and bridge quotes across Jumper, Jumper Advanced, Bungee, Relay, Matcha, KyberSwap, Uniswap and LlamaSwap, side by side, fees included.**<br />
 Pick a trade, see what each site would give you after its own fee, and open the winner with the trade filled in.
 
 <br />
@@ -37,18 +37,18 @@ Pick a trade, see what each site would give you after its own fee, and open the 
 
 Aggregators only compare their own sources, and each one takes its own fee out of the number it shows you. Jumper started charging a fee on jumper.xyz while jumper.xyz/advanced does not, and the same bridge (Across, Relay, Stargate...) often pays a different amount depending on which site you use it through.
 
-Crypto Bridge & Swap Compare asks all five sites the same question at once and shows you the answer each one gives.
+Crypto Bridge & Swap Compare asks all eight sites the same question at once and shows you the answer each one gives.
 
 ## What it does
 
-- **Five venues at once:** Jumper, Jumper Advanced, Bungee, Relay and Matcha.
+- **Eight venues at once:** Jumper, Jumper Advanced, Bungee, Relay and Matcha for swaps and bridges, plus KyberSwap, Uniswap and LlamaSwap (DefiLlama) for same-chain swaps.
 - **Swaps and bridges:** same chain is a swap, different chains is a bridge. No mode to pick.
 - **One best route per venue,** in two views:
   - **Best by value:** each venue's highest-paying route, venues ranked by what you receive.
   - **Best by time** (bridges only): each venue's fastest route, venues ranked by speed.
 - **Fees shown:** each venue's own fee (for example Jumper's 0.02% "LIFI Fixed Fee", Matcha's 0x fee), gas, time, and how far each venue is behind the top amount.
 - **A one-line verdict:** "Bungee pays most: 9995.27 USDC, 0.01% more than Jumper."
-- **17 chains, 112 built-in tokens** with logos, a searchable token picker, and any token by pasted contract address.
+- **44 chains, 680 built-in tokens** with logos, a searchable token picker, and any token by pasted contract address.
 - **Open site** takes you to that venue with the trade already filled in. You review and sign there.
 - **Side panel or pop-out:** works in Chrome's side panel, or in a wide window with every venue on one screen.
 
@@ -63,18 +63,18 @@ Works in Chrome and Chromium browsers with side panel support, such as Brave and
 
 ## How it works
 
-Crypto Bridge & Swap Compare does not call any quote API. It opens the five sites in a minimized background window with your trade already in the URL, reads the quote each site's own page receives, and shows it to you. The numbers are the ones each site would show you, after its own fee.
+Crypto Bridge & Swap Compare does not call any quote API. It opens the venue sites in a minimized background window with your trade already in the URL, reads the quote each site's own page receives, and shows it to you. The numbers are the ones each site would show you, after its own fee.
 
 - No API keys, no backend, no account.
 - It never connects a wallet, approves a token or signs anything. You do that on the venue's own site.
-- It only reads pages it opened itself. Your own Jumper, Bungee, Relay or Matcha tabs are left alone.
-- If a venue can't quote, its card says why: the page did not load, the page never asked for a quote, or its quote was for a different trade.
+- It only reads pages it opened itself. Your own tabs on those sites are left alone.
+- If a venue can't quote, its card says why: the page did not load, the page never asked for a quote, its quote was for a different trade, or the venue doesn't serve that chain or does swaps only.
 
 ## Supported chains
 
-Ethereum, Arbitrum, Base, Optimism, Polygon, BNB Chain, Avalanche, Linea, zkSync Era, Scroll, Blast, Mantle, Gnosis, Sonic, Unichain, Berachain and Robinhood Chain.
+44 EVM chains, each listed by at least two venues: Ethereum, Arbitrum, Base, Optimism, Polygon, BNB Chain, Avalanche, Linea, zkSync Era, Scroll, Blast, Mantle, Gnosis, Sonic, Unichain, Berachain, Robinhood Chain, Monad, HyperEVM, MegaETH, Plasma, Abstract, Ink, World Chain, Soneium, Katana, Mode, Arc, Tempo, Plume, Cronos, X Layer, Boba Network, Flow EVM, Stable, Metis, Lisk, Sei, Ronin, Morph, Somnia, ApeChain, Celo and BOB.
 
-Every built-in token address is checked on-chain (symbol and decimals) by `scripts/check-tokens.mjs`. Not every venue supports every chain; a venue that doesn't will show "Page never asked for a quote".
+The chain and token lists are generated from the venues' own lists by `scripts/catalog/` (up to 25 tokens per chain, ranked by volume), and every token address is checked on-chain (symbol and decimals). Not every venue supports every chain; a venue that doesn't is shown as "Not available on <chain>" and is not opened.
 
 ## Permissions
 
@@ -82,7 +82,7 @@ Every built-in token address is checked on-chain (symbol and decimals) by `scrip
 |---|---|
 | `sidePanel` | Shows the extension in Chrome's side panel. |
 | `storage` | Remembers your last trade form. Nothing else is stored. |
-| `jumper.xyz`, `app.bungee.exchange`, `relay.link`, `matcha.xyz` | Opens those sites in its own background tabs and reads their quotes. |
+| `jumper.xyz`, `app.bungee.exchange`, `relay.link`, `matcha.xyz`, `kyberswap.com`, `app.uniswap.org`, `swap.defillama.com` | Opens those sites in its own background tabs and reads their quotes. |
 
 No other sites, no browsing history, no remote code, no analytics.
 
@@ -106,7 +106,7 @@ pnpm smoke          # live end-to-end check against the real sites (needs networ
 | `src/controller.ts` | Opens the venue tabs, tracks timeouts, turns responses into quotes. |
 | `src/panel/`, `entrypoints/sidepanel/` | The side panel and pop-out UI. |
 | `tests/fixtures/` | Real quote responses recorded from each site, used by the unit tests. |
-| `scripts/` | Live smoke test, on-chain token check, logo and icon generators. |
+| `scripts/` | Live smoke test, chain and token catalog generator, on-chain token check, logo and icon generators. |
 
 Design notes live in `docs/` and `DESIGN.md`.
 

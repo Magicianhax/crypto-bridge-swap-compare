@@ -4,7 +4,7 @@ import { loadCapture } from './helpers';
 
 describe('scaffold', () => {
   it('lists the venues in display order', () => {
-    expect(VENUE_IDS).toEqual(['jumper', 'jumper-advanced', 'bungee', 'relay', 'matcha', 'kyberswap', 'uniswap']);
+    expect(VENUE_IDS).toEqual(['jumper', 'jumper-advanced', 'bungee', 'relay', 'matcha', 'kyberswap', 'uniswap', 'llamaswap']);
   });
 
   it('loads a recorded capture', () => {

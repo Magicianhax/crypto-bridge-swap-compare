@@ -32,7 +32,8 @@ export class Controller {
   private generation = 0;
   private trade: Trade | null = null;
   private readonly results = new Map<VenueId, VenueResult>();
-  private readonly captures = new Map<VenueId, Capture>();
+  /** Venue -> endpoint (host + path) -> that endpoint's latest capture. */
+  private readonly captures = new Map<VenueId, Map<string, Capture>>();
   private readonly timers = new Map<VenueId, ReturnType<typeof setTimeout>>();
   /** What each venue's page did this comparison, to explain a timeout. */
   private readonly seen = new Map<VenueId, { hello: boolean; captures: number; ignored: number }>();
@@ -135,11 +136,15 @@ export class Controller {
       this.publish();
       return;
     }
-    const previous = this.captures.get(venue);
+    // One latest response per endpoint: LlamaSwap's page asks several aggregators at once.
+    const endpoints = this.captures.get(venue) ?? new Map<string, Capture>();
+    this.captures.set(venue, endpoints);
+    const endpoint = url.hostname + url.pathname;
+    const previous = endpoints.get(endpoint);
     if (previous && previous.id > capture.id) return;
     const seen = this.seen.get(venue);
     if (seen && capture.id !== previous?.id) seen.captures += 1;
-    this.captures.set(venue, capture);
+    endpoints.set(endpoint, capture);
     this.reparse(venue);
     this.publish();
   }
@@ -191,26 +196,36 @@ export class Controller {
   }
 
   private reparse(venue: VenueId): void {
-    const capture = this.captures.get(venue);
+    const captures = [...(this.captures.get(venue)?.values() ?? [])];
     const trade = this.trade;
-    if (!capture || !trade) return;
-    if (capture.done && capture.status >= 400) {
-      this.set(venue, 'error', [], `HTTP ${capture.status}`);
-      return;
-    }
-    let quotes: Quote[] | null;
-    try {
-      quotes = this.adapters[venue].parse(capture, trade);
-    } catch (error) {
-      this.set(venue, 'error', [], errorText(error));
-      return;
-    }
-    if (quotes === null) {
-      const seen = this.seen.get(venue);
-      if (seen && capture.done) seen.ignored += 1;
-      // A late capture can change why a timed-out venue has no quote.
-      if (this.results.get(venue)?.status === 'timeout') this.set(venue, 'timeout', [], this.timeoutReason(venue));
-      return;
+    if (captures.length === 0 || !trade) return;
+    const quotes: Quote[] = [];
+    let failure: string | undefined;
+    let answered = false;
+    let pending = false;
+    let ignored = 0;
+    for (const capture of captures) {
+      if (capture.done && capture.status >= 400) {
+        failure ??= `HTTP ${capture.status}`;
+        continue;
+      }
+      let parsed: Quote[] | null;
+      try {
+        parsed = this.adapters[venue].parse(capture, trade);
+      } catch (error) {
+        // A body still arriving, or cut off by the page's next request, is not an answer yet.
+        if (capture.done && !capture.aborted) failure ??= errorText(error);
+        else pending = true;
+        continue;
+      }
+      if (parsed === null) {
+        if (capture.done) ignored += 1;
+        continue;
+      }
+      quotes.push(...parsed);
+      // A cut-off stream with no routes yet is not an answer; the page's next request is.
+      if (capture.done && !capture.aborted) answered = true;
+      else pending = true;
     }
     const first = quotes[0];
     if (first) {
@@ -222,8 +237,20 @@ export class Controller {
       }
       return;
     }
-    // A cut-off stream with no routes yet is not an answer; the page's next request is.
-    if (capture.done && !capture.aborted) this.set(venue, 'empty');
+    if (failure !== undefined) {
+      this.set(venue, 'error', [], failure);
+      return;
+    }
+    if (answered && !pending) {
+      this.set(venue, 'empty');
+      return;
+    }
+    if (!answered && !pending) {
+      const seen = this.seen.get(venue);
+      if (seen) seen.ignored += ignored;
+      // A late capture can change why a timed-out venue has no quote.
+      if (this.results.get(venue)?.status === 'timeout') this.set(venue, 'timeout', [], this.timeoutReason(venue));
+    }
   }
 
   private set(venue: VenueId, status: VenueStatus, quotes: Quote[] = [], error?: string): void {

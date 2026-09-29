@@ -4,9 +4,9 @@ import { NATIVE } from '../src/lib/tokens';
 import type { Trade, VenueResult } from '../src/types';
 import { bridgeTrade, loadCapture, swapTrade } from './helpers';
 
-const TAB = { jumper: 100, 'jumper-advanced': 101, bungee: 102, relay: 103, matcha: 104, kyberswap: 105, uniswap: 106 } as const;
+const TAB = { jumper: 100, 'jumper-advanced': 101, bungee: 102, relay: 103, matcha: 104, kyberswap: 105, uniswap: 106, llamaswap: 107 } as const;
 /** Swap-only DEXes sit out every bridge trade. */
-const DEX_OFF = { kyberswap: 'unsupported', uniswap: 'unsupported' } as const;
+const DEX_OFF = { kyberswap: 'unsupported', uniswap: 'unsupported', llamaswap: 'unsupported' } as const;
 
 function setup() {
   let next = 100;
@@ -34,11 +34,11 @@ describe('Controller', () => {
   it('opens one window and loads every venue', async () => {
     const { port, controller, status, emitted } = setup();
     await controller.compare(bridgeTrade());
-    expect(port.createWindow).toHaveBeenCalledWith(7);
-    expect(port.navigate).toHaveBeenCalledTimes(5); // the two swap-only DEXes skip a bridge
+    expect(port.createWindow).toHaveBeenCalledWith(8);
+    expect(port.navigate).toHaveBeenCalledTimes(5); // the swap-only DEXes skip a bridge
     expect(port.navigate).toHaveBeenCalledWith(TAB.jumper, expect.stringMatching(/^https:\/\/jumper\.xyz\/\?/));
     expect(port.navigate).toHaveBeenCalledWith(TAB.relay, expect.stringMatching(/^https:\/\/relay\.link\/bridge\/base\?/));
-    expect(Object.values(status())).toEqual(['loading', 'loading', 'loading', 'loading', 'loading', 'unsupported', 'unsupported']);
+    expect(Object.values(status())).toEqual(['loading', 'loading', 'loading', 'loading', 'loading', 'unsupported', 'unsupported', 'unsupported']);
     expect(emitted.length).toBeGreaterThan(0);
   });
 
@@ -98,6 +98,15 @@ describe('Controller', () => {
     await controller.compare(bridgeTrade());
     controller.onCapture(TAB.relay, 1, { ...loadCapture('relay', 'bridge'), text: 'x'.repeat(4_000_001) });
     expect(result('relay')).toMatchObject({ status: 'error', error: 'Response too large' });
+  });
+
+  it('keeps the latest response from each endpoint a venue page calls', async () => {
+    const { controller, result } = setup();
+    await controller.compare(swapTrade());
+    controller.onCapture(TAB.llamaswap, 1, { ...loadCapture('llamaswap', 'paraswap'), id: 1 });
+    controller.onCapture(TAB.llamaswap, 1, { ...loadCapture('llamaswap', 'kyberswap'), id: 2 });
+    const routes = result('llamaswap')?.quotes.map((q) => q.route);
+    expect(routes).toEqual(['ParaSwap: metric-v1', 'KyberSwap: 1010-prop']);
   });
 
   it('ignores captures from tabs it does not own', async () => {
@@ -167,6 +176,21 @@ describe('Controller', () => {
     expect(result('relay')?.status).toBe('error');
   });
 
+  it('does not fail a venue on a JSON body that is still arriving or was cut off', async () => {
+    const { controller, result, status } = setup();
+    await controller.compare(swapTrade());
+    const capture = loadCapture('uniswap', 'swap');
+    const cut = capture.text.slice(0, 300);
+    controller.onCapture(TAB.uniswap, 1, { ...capture, id: 1, text: cut, done: false });
+    expect(status().uniswap).toBe('loading');
+    controller.onCapture(TAB.uniswap, 1, { ...capture, id: 1 });
+    expect(status().uniswap).toBe('ok');
+    // The page polls: a newer quote that is still streaming, then aborted, keeps the last answer on screen.
+    controller.onCapture(TAB.uniswap, 1, { ...capture, id: 2, text: cut, done: false });
+    controller.onCapture(TAB.uniswap, 1, { ...capture, id: 2, text: cut, aborted: true });
+    expect(result('uniswap')?.status).toBe('ok');
+  });
+
   it('marks a finished stream without routes as empty', async () => {
     const { controller, status } = setup();
     await controller.compare(bridgeTrade());
@@ -219,7 +243,7 @@ describe('Controller', () => {
     const { port, controller, status } = setup();
     await controller.compare(bridgeTrade());
     controller.onWindowRemoved(7);
-    expect(Object.values(status())).toEqual(['error', 'error', 'error', 'error', 'error', 'unsupported', 'unsupported']);
+    expect(Object.values(status())).toEqual(['error', 'error', 'error', 'error', 'error', 'unsupported', 'unsupported', 'unsupported']);
     await controller.compare(bridgeTrade());
     expect(port.createWindow).toHaveBeenCalledTimes(2);
   });

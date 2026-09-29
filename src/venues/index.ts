@@ -5,6 +5,7 @@ import { makeJumper } from './jumper';
 import { matcha } from './matcha';
 import { relay } from './relay';
 import type { VenueAdapter } from './types';
+import { llamaswap } from './llamaswap';
 import { uniswap } from './uniswap';
 
 export const ADAPTERS: Record<VenueId, VenueAdapter> = {
@@ -15,6 +16,7 @@ export const ADAPTERS: Record<VenueId, VenueAdapter> = {
   matcha,
   kyberswap,
   uniswap,
+  llamaswap,
 };
 
 /** Content-script match patterns: the venue origins, nothing else. */
@@ -25,6 +27,7 @@ export const VENUE_MATCHES = [
   'https://matcha.xyz/*',
   'https://kyberswap.com/*',
   'https://app.uniswap.org/*',
+  'https://swap.defillama.com/*',
 ];
 
 function toUrl(href: string): URL | null {
