@@ -12,6 +12,17 @@ export interface BrowserPort {
   closeWindow(windowId: number): Promise<void>;
 }
 
+/** Largest response body accepted from a page (Bungee's full stream is about 0.25 MB). */
+const MAX_CAPTURE_CHARS = 4_000_000;
+
+function toUrl(href: string): URL | null {
+  try {
+    return new URL(href);
+  } catch {
+    return null;
+  }
+}
+
 const errorText = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 export class Controller {
@@ -87,12 +98,24 @@ export class Controller {
     const venue = this.tabs.get(tabId);
     if (venue === undefined || this.trade === null) return { owned: false };
     const input = this.adapters[venue].amountInput;
-    return { owned: true, venue, generation: this.generation, ...(input ? { fill: { ...input, value: this.trade.amount } } : {}) };
+    const reply: HelloReply = { owned: true, venue, generation: this.generation };
+    if (input) reply.fill = { ...input, value: this.trade.amount };
+    return reply;
   }
 
-  onCapture(tabId: number, generation: number, capture: Capture): void {
+  /** `senderUrl` is the page that sent the capture; it must be the venue's own site. */
+  onCapture(tabId: number, generation: number, capture: Capture, senderUrl?: string): void {
     const venue = this.tabs.get(tabId);
     if (venue === undefined || this.trade === null || generation !== this.generation) return;
+    const adapter = this.adapters[venue];
+    const url = toUrl(capture.url);
+    if (!url || !adapter.matches(url)) return;
+    if (senderUrl !== undefined && toUrl(senderUrl)?.hostname !== adapter.host) return;
+    if (capture.text.length > MAX_CAPTURE_CHARS || capture.reqBody.length > MAX_CAPTURE_CHARS) {
+      this.set(venue, 'error', [], 'Response too large');
+      this.publish();
+      return;
+    }
     const previous = this.captures.get(venue);
     if (previous && previous.id > capture.id) return;
     this.captures.set(venue, capture);
@@ -113,7 +136,7 @@ export class Controller {
   onWindowRemoved(windowId: number): void {
     if (windowId !== this.windowId) return;
     this.windowId = null;
-    for (const tabId of [...this.tabs.keys()]) this.onTabRemoved(tabId);
+    for (const tabId of this.tabs.keys()) this.onTabRemoved(tabId);
   }
 
   async close(): Promise<void> {

@@ -3,7 +3,7 @@ import { parseSse } from '../lib/sse';
 import { EEEE, sameToken, venueAddress } from '../lib/tokens';
 import type { Capture, Quote, Trade } from '../types';
 import type { VenueAdapter } from './types';
-import { addrParam, amountParam, compact, intParam } from './url';
+import { addrParam, amountParam, compact, intParam, sellAmountMatches } from './url';
 
 interface BungeeProtocol { protocol?: { displayName?: string } | null }
 interface BungeeRoute {
@@ -42,6 +42,7 @@ function toQuote(raw: unknown): Quote | null {
 export const bungee: VenueAdapter = {
   id: 'bungee',
   label: 'Bungee',
+  host: 'app.bungee.exchange',
   timeoutMs: 30_000,
 
   buildUrl(trade: Trade): string {
@@ -73,7 +74,10 @@ export const bungee: VenueAdapter = {
 
   parse(capture: Capture, trade: Trade) {
     const p = new URL(capture.url).searchParams;
-    if (intParam(p, 'destinationChainId') !== trade.toChainId) return null;
+    if (intParam(p, 'destinationChainId') !== trade.toChainId || intParam(p, 'originChainId') !== trade.fromChainId) return null;
+    const input = p.get('inputToken');
+    if (input !== null && !sameToken(input, trade.fromToken.address)) return null;
+    if (!sellAmountMatches(p.get('inputAmount'), trade)) return null;
     const output = p.get('outputToken');
     if (output !== null && !sameToken(output, trade.toToken.address)) return null;
     // Snapshots are cumulative: the latest complete one is the current route list.

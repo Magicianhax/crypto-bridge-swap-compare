@@ -2,7 +2,7 @@ import { isRecord, isUint, num, safeJson } from '../lib/json';
 import { CHAINS, chainById, NATIVE, sameToken, venueAddress } from '../lib/tokens';
 import type { Capture, Trade, VenueFee } from '../types';
 import type { VenueAdapter } from './types';
-import { addrParam, amountParam, compact, intParam } from './url';
+import { addrParam, amountParam, compact, intParam, sellAmountMatches } from './url';
 
 interface RelayAmount { amount?: string; amountUsd?: string; currency?: { decimals?: number } }
 interface RelayQuote {
@@ -18,6 +18,7 @@ function appFee(usd: number | undefined): VenueFee | undefined {
 export const relay: VenueAdapter = {
   id: 'relay',
   label: 'Relay',
+  host: 'relay.link',
   timeoutMs: 30_000,
 
   buildUrl(trade: Trade): string {
@@ -54,7 +55,9 @@ export const relay: VenueAdapter = {
   parse(capture: Capture, trade: Trade) {
     const req = safeJson(capture.reqBody);
     if (isRecord(req)) {
-      if (req.destinationChainId !== trade.toChainId) return null;
+      if (req.destinationChainId !== trade.toChainId || req.originChainId !== trade.fromChainId) return null;
+      if (typeof req.originCurrency === 'string' && !sameToken(req.originCurrency, trade.fromToken.address)) return null;
+      if (!sellAmountMatches(req.amount, trade)) return null;
       if (typeof req.destinationCurrency === 'string' && !sameToken(req.destinationCurrency, trade.toToken.address)) return null;
     }
     const body = JSON.parse(capture.text) as unknown;

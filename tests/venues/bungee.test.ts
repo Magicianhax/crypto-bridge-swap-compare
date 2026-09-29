@@ -50,3 +50,10 @@ describe('Bungee', () => {
     expect(bungee.parse(partial, bridgeTrade())?.length ?? 0).toBeLessThanOrEqual(7);
   });
 });
+
+describe('Bungee sell-side check', () => {
+  it('ignores a quote for a different amount or origin chain', () => {
+    expect(bungee.parse(loadCapture('bungee', 'bridge'), { ...bridgeTrade(), amount: '0.2' })).toBeNull();
+    expect(bungee.parse(loadCapture('bungee', 'bridge'), { ...bridgeTrade(), fromChainId: 10 })).toBeNull();
+  });
+});

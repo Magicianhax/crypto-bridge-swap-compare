@@ -59,3 +59,10 @@ describe('Relay', () => {
     expect(() => relay.parse(capture, bridgeTrade())).toThrow();
   });
 });
+
+describe('Relay sell-side check', () => {
+  it('ignores a quote for a different amount or origin chain', () => {
+    expect(relay.parse(loadCapture('relay', 'bridge'), { ...bridgeTrade(), amount: '0.2' })).toBeNull();
+    expect(relay.parse(loadCapture('relay', 'bridge'), { ...bridgeTrade(), fromChainId: 10 })).toBeNull();
+  });
+});

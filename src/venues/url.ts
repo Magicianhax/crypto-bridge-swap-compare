@@ -1,6 +1,6 @@
 import { isNative, NATIVE } from '../lib/tokens';
-import { normalizeAmount } from '../lib/units';
-import type { Address, TradeHint } from '../types';
+import { normalizeAmount, parseUnits } from '../lib/units';
+import type { Address, Trade, TradeHint } from '../types';
 
 export function intParam(p: URLSearchParams, key: string): number | undefined {
   const v = p.get(key);
@@ -16,6 +16,14 @@ export function addrParam(p: URLSearchParams, key: string): Address | undefined 
 export function amountParam(p: URLSearchParams, key: string): string | undefined {
   const v = p.get(key);
   return v === null ? undefined : (normalizeAmount(v) ?? undefined);
+}
+
+/** False only when a raw sell amount is present and differs from the trade's amount. */
+export function sellAmountMatches(raw: unknown, trade: Trade): boolean {
+  const decimals = trade.fromToken.decimals;
+  if (typeof raw !== 'string' || !/^\d+$/.test(raw) || decimals === null) return true;
+  const expected = parseUnits(trade.amount, decimals);
+  return expected === null || BigInt(raw) === expected;
 }
 
 /** Drops undefined fields; null when nothing is left. */

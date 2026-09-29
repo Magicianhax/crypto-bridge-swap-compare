@@ -3,7 +3,7 @@ import { parseSse } from '../lib/sse';
 import { NATIVE, sameToken, venueAddress } from '../lib/tokens';
 import type { Capture, Quote, Trade, VenueFee, VenueId } from '../types';
 import type { VenueAdapter } from './types';
-import { addrParam, amountParam, compact, intParam } from './url';
+import { addrParam, amountParam, compact, intParam, sellAmountMatches } from './url';
 
 type JumperId = Extract<VenueId, 'jumper' | 'jumper-advanced'>;
 
@@ -51,6 +51,7 @@ export function makeJumper(id: JumperId): VenueAdapter {
   return {
     id,
     label: advanced ? 'Jumper Advanced' : 'Jumper',
+    host: 'jumper.xyz',
     timeoutMs: 30_000,
 
     buildUrl(trade: Trade): string {
@@ -89,6 +90,8 @@ export function makeJumper(id: JumperId): VenueAdapter {
         if (typeof options.integrator === 'string' && options.integrator !== INTEGRATOR[id]) return null;
         if (req.fromChainId !== trade.fromChainId || req.toChainId !== trade.toChainId) return null;
         if (typeof req.toTokenAddress === 'string' && !sameToken(req.toTokenAddress, trade.toToken.address)) return null;
+        if (typeof req.fromTokenAddress === 'string' && !sameToken(req.fromTokenAddress, trade.fromToken.address)) return null;
+        if (!sellAmountMatches(req.fromAmount, trade)) return null;
       }
       const quotes: Quote[] = [];
       const seen = new Set<string>();

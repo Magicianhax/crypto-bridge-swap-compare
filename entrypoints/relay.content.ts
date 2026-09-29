@@ -42,8 +42,8 @@ export default defineContentScript({
     }
     generation = reply.generation;
     pending.splice(0).forEach(forward);
-    const spoof: PageMessage = { source: MSG_SOURCE, kind: 'spoof-visibility' };
-    window.postMessage(spoof, window.location.origin);
+    const arm: PageMessage = { source: MSG_SOURCE, kind: 'arm' };
+    window.postMessage(arm, window.location.origin);
     if (reply.fill) scheduleFill(document, reply.fill);
   },
 });

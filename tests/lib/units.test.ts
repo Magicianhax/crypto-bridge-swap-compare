@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { formatUnits, normalizeAmount } from '../../src/lib/units';
+import { formatUnits, normalizeAmount, parseUnits } from '../../src/lib/units';
+
+describe('parseUnits', () => {
+  it('converts human amounts to raw integers', () => {
+    expect(parseUnits('0.1', 18)).toBe(100000000000000000n);
+    expect(parseUnits('272.5', 6)).toBe(272500000n);
+    expect(parseUnits('3', 0)).toBe(3n);
+  });
+  it('rejects excess fraction digits', () => {
+    expect(parseUnits('0.1234567', 6)).toBeNull();
+  });
+});
 
 describe('formatUnits', () => {
   it('truncates to six fraction digits', () => {
@@ -26,6 +37,7 @@ describe('normalizeAmount', () => {
     [' 1,5 ', '1.5'],
     ['.5', '0.5'],
     ['01.50', '1.50'],
+    ['1,000.5', '1000.5'],
   ])('accepts %j as %j', (input, out) => {
     expect(normalizeAmount(input)).toBe(out);
   });

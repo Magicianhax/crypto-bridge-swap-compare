@@ -8,6 +8,8 @@ export interface AmountInput {
 export interface VenueAdapter {
   id: VenueId;
   label: string;
+  /** hostname of the venue's own page */
+  host: string;
   /** ms without a quote before the venue shows as timed out */
   timeoutMs: number;
   buildUrl(trade: Trade): string;

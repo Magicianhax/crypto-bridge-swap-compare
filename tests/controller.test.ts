@@ -80,6 +80,24 @@ describe('Controller', () => {
     expect(result('jumper')?.quotes).toHaveLength(9);
   });
 
+  it('ignores captures that are not the venue quote endpoint or come from another site', async () => {
+    const { controller, status } = setup();
+    await controller.compare(bridgeTrade());
+    controller.onCapture(TAB.jumper, 1, loadCapture('relay', 'bridge'), 'https://jumper.xyz/');
+    expect(status().jumper).toBe('loading');
+    controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'), 'https://evil.example/');
+    expect(status().jumper).toBe('loading');
+    controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'), 'https://jumper.xyz/?fromChain=42161');
+    expect(status().jumper).toBe('ok');
+  });
+
+  it('refuses oversized captures', async () => {
+    const { controller, result } = setup();
+    await controller.compare(bridgeTrade());
+    controller.onCapture(TAB.relay, 1, { ...loadCapture('relay', 'bridge'), text: 'x'.repeat(4_000_001) });
+    expect(result('relay')).toMatchObject({ status: 'error', error: 'Response too large' });
+  });
+
   it('ignores captures from tabs it does not own', async () => {
     const { controller, status } = setup();
     await controller.compare(bridgeTrade());

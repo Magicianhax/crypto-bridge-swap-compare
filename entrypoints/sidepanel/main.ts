@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import { CHAINS, defaultToToken, findToken, NATIVE, tokensFor } from '../../src/lib/tokens';
+import { chainById, CHAINS, defaultToToken, findToken, NATIVE, tokensFor } from '../../src/lib/tokens';
 import type { PanelToWorker, WorkerToPanel } from '../../src/messages';
 import { buildTrade, DEFAULT_STATE, stateFromHint, type FormState, type Mode } from '../../src/panel/form';
 import { buildRows, renderRows } from '../../src/panel/view';
@@ -7,6 +7,8 @@ import type { Trade, VenueId } from '../../src/types';
 import { ADAPTERS, hintFromUrl } from '../../src/venues';
 
 const OTHER = 'other';
+/** Port traffic keeps the MV3 service worker alive while the panel is open. */
+const PING_MS = 20_000;
 const STORAGE_KEY = 'lastState';
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -90,7 +92,7 @@ function connect(): ReturnType<typeof browser.runtime.connect> {
     renderRows(results, buildRows(message.results, lastTrade?.toToken.symbol ?? ''));
   });
   next.onDisconnect.addListener(() => {
-    port = null;
+    if (port === next) port = null;
   });
   port = next;
   return next;
@@ -105,10 +107,25 @@ async function prefill(): Promise<void> {
   if (found) writeState(stateFromHint(found.hint, readState()));
 }
 
+/** The saved form is only trusted field by field; anything odd falls back to the default. */
+function savedState(value: unknown): FormState {
+  if (typeof value !== 'object' || value === null) return DEFAULT_STATE;
+  const v = value as Record<string, unknown>;
+  const chain = (x: unknown, fallback: number) => (typeof x === 'number' && chainById(x) ? x : fallback);
+  const text = (x: unknown, fallback: string) => (typeof x === 'string' ? x : fallback);
+  return {
+    mode: v.mode === 'swap' ? 'swap' : 'bridge',
+    fromChainId: chain(v.fromChainId, DEFAULT_STATE.fromChainId),
+    toChainId: chain(v.toChainId, DEFAULT_STATE.toChainId),
+    fromToken: text(v.fromToken, DEFAULT_STATE.fromToken),
+    toToken: text(v.toToken, DEFAULT_STATE.toToken),
+    amount: text(v.amount, DEFAULT_STATE.amount),
+  };
+}
+
 async function restore(): Promise<void> {
-  const stored = await browser.storage.local.get(STORAGE_KEY);
-  const saved = stored[STORAGE_KEY] as Partial<FormState> | undefined;
-  writeState({ ...DEFAULT_STATE, ...saved });
+  const stored = await browser.storage.local.get(STORAGE_KEY).catch(() => ({}) as Record<string, unknown>);
+  writeState(savedState(stored[STORAGE_KEY]));
 }
 
 form.addEventListener('submit', (event) => {
@@ -120,6 +137,8 @@ form.addEventListener('submit', (event) => {
     return;
   }
   formError.hidden = true;
+  // Show the amount actually compared ("1,000.5" becomes "1000.5").
+  amount.value = result.trade.amount;
   lastTrade = result.trade;
   refreshButton.disabled = false;
   void browser.storage.local.set({ [STORAGE_KEY]: readState() });
@@ -167,6 +186,10 @@ browser.tabs.onActivated.addListener(() => void prefill());
 browser.tabs.onUpdated.addListener((_tabId, change) => {
   if (change.url) void prefill();
 });
+
+setInterval(() => {
+  if (port) port.postMessage({ type: 'ping' } satisfies PanelToWorker);
+}, PING_MS);
 
 fillChains(fromChain);
 fillChains(toChain);

@@ -87,3 +87,12 @@ describe('Jumper parse', () => {
     expect(quotes?.length ?? 0).toBeLessThan(9);
   });
 });
+
+describe('Jumper sell-side check', () => {
+  it('ignores a quote for a different amount or sell token', () => {
+    expect(jumper.parse(loadCapture('jumper', 'bridge'), { ...bridgeTrade(), amount: '0.2' })).toBeNull();
+    const trade = bridgeTrade();
+    trade.fromToken = { ...trade.fromToken, address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', symbol: 'WETH' };
+    expect(jumper.parse(loadCapture('jumper', 'bridge'), trade)).toBeNull();
+  });
+});

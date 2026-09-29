@@ -31,6 +31,8 @@ export function installInterceptor(
   matches: (url: string) => boolean,
   emit: (capture: Capture) => void,
   throttleMs = 500,
+  /** false until the relay confirms this is an extension-owned tab */
+  active: () => boolean = () => true,
 ): void {
   let nextId = 1;
   const resolve = (input: RequestInfo | URL): string => {
@@ -45,7 +47,7 @@ export function installInterceptor(
   const originalFetch = env.fetch;
   env.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = resolve(input);
-    if (!matches(url)) return originalFetch.call(env, input, init);
+    if (!active() || !matches(url)) return originalFetch.call(env, input, init);
     const id = nextId++;
     const response = await originalFetch.call(env, input, init);
     const requestMethod = typeof input === 'object' && 'method' in input ? input.method : 'GET';
@@ -58,9 +60,13 @@ export function installInterceptor(
       text: '',
       done: false,
     };
-    const body = response.clone().body;
-    if (body) void pump(body, capture, emit, throttleMs);
-    else emit({ ...capture, done: true });
+    try {
+      const body = response.clone().body;
+      if (body) void pump(body, capture, emit, throttleMs);
+      else emit({ ...capture, done: true });
+    } catch {
+      // Never let capture break the page's own request.
+    }
     return response;
   };
 
@@ -73,7 +79,7 @@ export function installInterceptor(
   };
   proto.send = function (this: TaggedXhr, body?: unknown) {
     const tag = this[TAG];
-    if (tag && matches(tag.url)) {
+    if (tag && active() && matches(tag.url)) {
       const id = nextId++;
       this.addEventListener('loadend', () => {
         const text =

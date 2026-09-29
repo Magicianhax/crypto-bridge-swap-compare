@@ -2,7 +2,7 @@ import { isRecord, isUint, num } from '../lib/json';
 import { EEEE, sameToken, venueAddress } from '../lib/tokens';
 import type { Capture, Trade, VenueFee } from '../types';
 import type { VenueAdapter } from './types';
-import { addrParam, amountParam, compact, intParam } from './url';
+import { addrParam, amountParam, compact, intParam, sellAmountMatches } from './url';
 
 interface MatchaFee { amount?: string; token?: string }
 interface MatchaFees { integratorFee?: MatchaFee | null; zeroExFee?: MatchaFee | null; providerAppFee?: MatchaFee | null }
@@ -31,6 +31,7 @@ function matchaFee(fees: MatchaFees | undefined, sellToken: string, sellAmount: 
 export const matcha: VenueAdapter = {
   id: 'matcha',
   label: 'Matcha',
+  host: 'matcha.xyz',
   timeoutMs: 40_000,
   amountInput: { selector: 'input[placeholder="0.0"]', afterMs: 8_000 },
 
@@ -73,6 +74,8 @@ export const matcha: VenueAdapter = {
     if (intParam(p, cross ? 'destinationChain' : 'chainId') !== trade.toChainId) return null;
     if (!sameToken(buyToken, trade.toToken.address)) return null;
     if (!cross && trade.fromChainId !== trade.toChainId) return null;
+    if (cross && intParam(p, 'originChain') !== trade.fromChainId) return null;
+    if (!sameToken(sellToken, trade.fromToken.address) || !sellAmountMatches(sellAmount, trade)) return null;
 
     const body = JSON.parse(capture.text) as unknown;
     if (!isRecord(body)) throw new Error('Matcha: unexpected response');

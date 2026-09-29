@@ -6,7 +6,7 @@ const capture = { id: 1, url: 'https://relay.link/api/relay/quote/v2', method: '
 describe('isPageMessage', () => {
   it('accepts a well-formed capture and the spoof request', () => {
     expect(isPageMessage({ source: MSG_SOURCE, kind: 'capture', capture })).toBe(true);
-    expect(isPageMessage({ source: MSG_SOURCE, kind: 'spoof-visibility' })).toBe(true);
+    expect(isPageMessage({ source: MSG_SOURCE, kind: 'arm' })).toBe(true);
   });
   it('rejects other sources and malformed captures', () => {
     expect(isPageMessage({ source: 'other', kind: 'capture', capture })).toBe(false);

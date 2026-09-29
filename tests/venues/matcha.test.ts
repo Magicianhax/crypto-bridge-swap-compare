@@ -57,3 +57,10 @@ describe('Matcha', () => {
     expect(matcha.parse(loadCapture('matcha', 'bridge'), swapTrade())).toBeNull();
   });
 });
+
+describe('Matcha sell-side check', () => {
+  it('ignores a quote for a different amount or origin chain', () => {
+    expect(matcha.parse(loadCapture('matcha', 'swap'), { ...swapTrade(), amount: '0.2' })).toBeNull();
+    expect(matcha.parse(loadCapture('matcha', 'bridge'), { ...bridgeTrade(), fromChainId: 10 })).toBeNull();
+  });
+});

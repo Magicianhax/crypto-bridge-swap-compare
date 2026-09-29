@@ -15,7 +15,7 @@
     "smoke": "wxt build && node scripts/smoke.mjs"
   },
   "devDependencies": {
-    "@types/node": "^24.19.0",
+    "@types/node": "24.19.0",
     "happy-dom": "20.14.5",
     "oxlint": "1.85.0",
     "playwright": "1.63.0",

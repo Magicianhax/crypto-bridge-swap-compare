@@ -7,7 +7,8 @@ export const MSG_SOURCE = 'quote-compare' as const;
 /** window.postMessage between the MAIN-world interceptor and the ISOLATED relay. */
 export type PageMessage =
   | { source: typeof MSG_SOURCE; kind: 'capture'; capture: Capture }
-  | { source: typeof MSG_SOURCE; kind: 'spoof-visibility' };
+  /** relay -> interceptor, owned tabs only: start capturing and keep the page looking visible */
+  | { source: typeof MSG_SOURCE; kind: 'arm' };
 
 /** ISOLATED relay -> service worker. */
 export type RuntimeMessage = { type: 'hello' } | { type: 'capture'; generation: number; capture: Capture };
@@ -24,7 +25,7 @@ export interface HelloReply {
 }
 
 /** Side panel <-> service worker over the 'panel' port. */
-export type PanelToWorker = { type: 'compare'; trade: Trade } | { type: 'refresh' };
+export type PanelToWorker = { type: 'compare'; trade: Trade } | { type: 'refresh' } | { type: 'ping' };
 export type WorkerToPanel = { type: 'results'; results: VenueResult[] } | { type: 'error'; message: string };
 
 export function isCapture(x: unknown): x is Capture {
@@ -42,6 +43,6 @@ export function isCapture(x: unknown): x is Capture {
 
 export function isPageMessage(x: unknown): x is PageMessage {
   if (!isRecord(x) || x.source !== MSG_SOURCE) return false;
-  if (x.kind === 'spoof-visibility') return true;
+  if (x.kind === 'arm') return true;
   return x.kind === 'capture' && isCapture(x.capture);
 }

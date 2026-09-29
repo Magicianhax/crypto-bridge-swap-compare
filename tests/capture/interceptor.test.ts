@@ -14,7 +14,7 @@ function streamOf(chunks: string[]): ReadableStream<Uint8Array> {
   });
 }
 
-function setup(fetchImpl?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
+function setup(fetchImpl?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>, active: () => boolean = () => true) {
   // A fresh class per test: the interceptor patches the prototype.
   class FakeXhr extends EventTarget {
     status = 0;
@@ -42,7 +42,7 @@ function setup(fetchImpl?: (input: RequestInfo | URL, init?: RequestInit) => Pro
     XMLHttpRequest: FakeXhr,
     location: { href: 'https://relay.link/bridge/base' },
   };
-  installInterceptor(env, (url) => url.includes('/quote'), (c) => captures.push(c), 0);
+  installInterceptor(env, (url) => url.includes('/quote'), (c) => captures.push(c), 0, active);
   return { env, captures, fetchCalls };
 }
 
@@ -104,6 +104,17 @@ describe('installInterceptor', () => {
     xhr.send('{"x":1}');
     await waitFor(() => captures.length > 0);
     expect(captures[0]).toEqual({ id: 1, url: 'https://relay.link/api/relay/quote/v2', method: 'POST', reqBody: '{"x":1}', status: 200, text: '{"details":{}}', done: true });
+  });
+
+  it('stays passive until armed', async () => {
+    const { env, captures } = setup(undefined, () => false);
+    const response = await env.fetch('https://api.example/quote/stream');
+    expect(await response.text()).toBe(BODY);
+    const xhr = new env.XMLHttpRequest();
+    xhr.open('post', '/api/relay/quote/v2');
+    xhr.send('{}');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(captures).toEqual([]);
   });
 
   it('ignores non-matching XHR', async () => {
