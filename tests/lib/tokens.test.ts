@@ -1,12 +1,12 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CHAINS, EEEE, NATIVE, TOKENS, chainById, defaultToToken, findToken, isNative, sameToken, searchTokens, tokensFor, venueAddress } from '../../src/lib/tokens';
+import { CHAINS, EEEE, NATIVE, TOKENS, chainById, defaultToToken, findToken, isNative, sameToken, searchChains, searchTokens, tokensFor, venueAddress } from '../../src/lib/tokens';
 
 const logo = (dir: string, file: string) => new URL(`../../public/logos/${dir}/${file}`, import.meta.url);
 
 describe('tokens', () => {
-  it('covers sixteen chains, each with its gas token first and a dollar stablecoin', () => {
-    expect(CHAINS.map((c) => c.id)).toEqual([1, 42161, 8453, 10, 137, 56, 43114, 59144, 324, 534352, 81457, 5000, 100, 146, 130, 80094]);
+  it('covers seventeen chains, each with its gas token first and a dollar stablecoin', () => {
+    expect(CHAINS.map((c) => c.id)).toEqual([1, 42161, 8453, 10, 137, 56, 43114, 59144, 324, 534352, 81457, 5000, 100, 146, 130, 80094, 4663]);
     for (const chain of CHAINS) {
       const tokens = tokensFor(chain.id);
       expect(tokens[0]?.address, chain.name).toBe(NATIVE);
@@ -61,5 +61,17 @@ describe('tokens', () => {
     expect(searchTokens(42161, '0x912ce59144191c1204e64559fe8253a0e49e6548').map((t) => t.symbol)).toEqual(['ARB']);
     expect(searchTokens(1, '')).toHaveLength(tokensFor(1).length);
     expect(searchTokens(1, 'zzz')).toEqual([]);
+  });
+});
+
+describe('searchChains', () => {
+  it('matches names, Relay slugs and chain ids, prefix matches first', () => {
+    expect(searchChains('ba').map((c) => c.name)).toEqual(['Base']);
+    expect(searchChains('robin').map((c) => c.id)).toEqual([4663]);
+    expect(searchChains('bsc').map((c) => c.name)).toEqual(['BNB Chain']);
+    expect(searchChains('42161').map((c) => c.name)).toEqual(['Arbitrum']);
+    expect(searchChains('chain').map((c) => c.name)).toEqual(['BNB Chain', 'Unichain', 'Berachain', 'Robinhood Chain']);
+    expect(searchChains('')).toHaveLength(CHAINS.length);
+    expect(searchChains('zzz')).toEqual([]);
   });
 });

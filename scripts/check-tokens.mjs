@@ -19,6 +19,7 @@ const RPC = {
   146: 'https://sonic-rpc.publicnode.com',
   130: 'https://unichain-rpc.publicnode.com',
   80094: 'https://berachain-rpc.publicnode.com',
+  4663: 'https://rpc.mainnet.chain.robinhood.com',
 };
 
 async function rpc(chainId, method, params) {

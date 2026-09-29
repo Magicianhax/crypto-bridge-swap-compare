@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import { chainById, CHAINS, findToken, isNative, searchTokens } from '../../src/lib/tokens';
+import { chainById, findToken, isNative, searchChains, searchTokens } from '../../src/lib/tokens';
 import type { PanelToWorker, WorkerToPanel } from '../../src/messages';
 import { buildTrade, DEFAULT_STATE, flipState, resolveToken, stateFromHint, tradeKind, type FormState } from '../../src/panel/form';
 import { icon } from '../../src/panel/icons';
@@ -40,6 +40,9 @@ const pickerTitle = byId<HTMLHeadingElement>('pickerTitle');
 const pickerClose = byId<HTMLButtonElement>('pickerClose');
 const chainButton = byId<HTMLButtonElement>('chainButton');
 const chainList = byId<HTMLUListElement>('chainList');
+const chainMenu = byId<HTMLDivElement>('chainMenu');
+const chainSearch = byId<HTMLInputElement>('chainSearch');
+const tabsBar = byId<HTMLDivElement>('tabs');
 const tokenSearch = byId<HTMLInputElement>('tokenSearch');
 const tokenList = byId<HTMLUListElement>('tokenList');
 
@@ -106,8 +109,20 @@ function chainLabel(chainId: number): HTMLElement[] {
 function renderChainSelect(): void {
   chainButton.replaceChildren(...chainLabel(pickerChainId), icon(document, 'chevronDown', 14));
   chainButton.setAttribute('aria-label', `Chain: ${chainById(pickerChainId)?.name ?? 'none'}. Change`);
+  renderChainOptions();
+}
+
+function renderChainOptions(): void {
+  const chains = searchChains(chainSearch.value);
+  if (chains.length === 0) {
+    const none = document.createElement('li');
+    none.className = 'chain-empty';
+    none.textContent = 'No chain matches';
+    chainList.replaceChildren(none);
+    return;
+  }
   chainList.replaceChildren(
-    ...CHAINS.map((chain) => {
+    ...chains.map((chain) => {
       const option = document.createElement('li');
       option.className = 'chain-option';
       option.setAttribute('role', 'option');
@@ -122,12 +137,13 @@ function renderChainSelect(): void {
 }
 
 function setChainMenu(open: boolean): void {
-  chainList.hidden = !open;
+  chainMenu.hidden = !open;
   chainButton.setAttribute('aria-expanded', String(open));
   if (open) {
-    const current = chainList.querySelector<HTMLElement>('[aria-selected="true"]') ?? chainList.querySelector<HTMLElement>('.chain-option');
-    current?.scrollIntoView({ block: 'nearest' });
-    current?.focus();
+    chainSearch.value = '';
+    renderChainOptions();
+    chainList.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+    chainSearch.focus();
   }
 }
 
@@ -231,6 +247,16 @@ const send = (message: PanelToWorker) => connect().postMessage(message);
 
 function showResults(results: Parameters<typeof buildCards>[0]): void {
   lastResults = results;
+  const isBridge = lastTrade !== null && lastTrade.fromChainId !== lastTrade.toChainId;
+  tabsBar.hidden = !isBridge || results.length === 0;
+  if (!isBridge && rankBy === 'time') {
+    rankBy = 'value';
+    for (const t of tabs) {
+      t.setAttribute('aria-selected', String(t.dataset.by === 'value'));
+      t.tabIndex = t.dataset.by === 'value' ? 0 : -1;
+    }
+    cardsList.setAttribute('aria-labelledby', 'tabValue');
+  }
   const symbol = lastTrade?.toToken.symbol ?? '';
   const cards = buildCards(results, rankBy);
   renderCards(cardsList, cards, symbol);
@@ -322,7 +348,18 @@ toPick.addEventListener('click', () => openPicker('to'));
 flip.addEventListener('click', () => setState(flipState(state)));
 refreshButton.addEventListener('click', () => send({ type: 'refresh' }));
 
-chainButton.addEventListener('click', () => setChainMenu(chainList.hidden));
+chainButton.addEventListener('click', () => setChainMenu(chainMenu.hidden));
+chainSearch.addEventListener('input', renderChainOptions);
+chainSearch.addEventListener('keydown', (event) => {
+  const first = chainList.querySelector<HTMLElement>('.chain-option');
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    if (first?.dataset.chain) chooseChain(Number(first.dataset.chain));
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    first?.focus();
+  }
+});
 chainList.addEventListener('click', (event) => {
   const option = (event.target as HTMLElement).closest<HTMLElement>('.chain-option');
   if (option?.dataset.chain) chooseChain(Number(option.dataset.chain));
@@ -341,13 +378,13 @@ chainList.addEventListener('keydown', (event) => {
 });
 picker.addEventListener('cancel', (event) => {
   // Escape closes an open chain menu first, then the picker.
-  if (chainList.hidden) return;
+  if (chainMenu.hidden) return;
   event.preventDefault();
   setChainMenu(false);
   chainButton.focus();
 });
 picker.addEventListener('pointerdown', (event) => {
-  if (!chainList.hidden && !(event.target as HTMLElement).closest('.chain-select')) setChainMenu(false);
+  if (!chainMenu.hidden && !(event.target as HTMLElement).closest('.chain-select')) setChainMenu(false);
 });
 tokenSearch.addEventListener('input', renderTokens);
 tokenSearch.addEventListener('keydown', (event) => {

@@ -29,6 +29,7 @@ export const CHAINS: readonly Chain[] = [
   { id: 146, name: 'Sonic', relaySlug: 'sonic', logo: 'sonic.png' },
   { id: 130, name: 'Unichain', relaySlug: 'unichain', logo: 'unichain.webp' },
   { id: 80094, name: 'Berachain', relaySlug: 'berachain', logo: 'berachain.webp' },
+  { id: 4663, name: 'Robinhood Chain', relaySlug: 'robinhood', logo: 'robinhood.webp' },
 ];
 
 /** `logo` is a file name in public/logos/tokens; wrapped tokens share the base logo. */
@@ -167,6 +168,10 @@ export const TOKENS: readonly Token[] = [
   t(80094, '0x549943e04f40284185054145c6E4e9568C1D3241', 'USDC.e', 'Bridged USDC', 6, 'usdc.png'),
   t(80094, '0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590', 'WETH', 'Wrapped Ether', 18, 'eth.png'),
   t(80094, '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c', 'WBTC', 'Wrapped BTC', 8, 'wbtc.png'),
+
+  t(4663, NATIVE, 'ETH', 'Ether', 18, 'eth.png'),
+  t(4663, '0x0bd7d308f8e1639fab988df18a8011f41eacad73', 'WETH', 'Wrapped Ether', 18, 'eth.png'),
+  t(4663, '0x5fc5360d0400a0fd4f2af552add042d716f1d168', 'USDG', 'Global Dollar', 6, 'usdg.webp'),
 ];
 
 export function isNative(address: string): boolean {
@@ -211,4 +216,20 @@ export function searchTokens(chainId: number, query: string): Token[] {
     .filter((e) => e.r < 3)
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map((e) => e.x);
+}
+
+/** Chain search: name or Relay slug prefix first, then any substring; an exact chain id also matches. */
+export function searchChains(query: string): Chain[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...CHAINS];
+  const rank = (c: Chain): number => {
+    const name = c.name.toLowerCase();
+    if (String(c.id) === q || name.startsWith(q) || c.relaySlug.startsWith(q)) return 0;
+    if (name.includes(q) || c.relaySlug.includes(q)) return 1;
+    return 2;
+  };
+  return CHAINS.map((c, i) => ({ c, i, r: rank(c) }))
+    .filter((e) => e.r < 2)
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((e) => e.c);
 }

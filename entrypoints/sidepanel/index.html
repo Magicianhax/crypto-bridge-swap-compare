@@ -48,7 +48,7 @@
       <section class="results" aria-labelledby="resultsTitle">
         <div class="results-head">
           <h2 id="resultsTitle" class="sr-only">Best route per venue</h2>
-          <div class="tabs" role="tablist" aria-label="Rank venues by">
+          <div id="tabs" class="tabs" role="tablist" aria-label="Rank venues by" hidden>
             <button type="button" class="tab" role="tab" id="tabValue" data-by="value" aria-selected="true" aria-controls="cards">Best by value</button>
             <button type="button" class="tab" role="tab" id="tabTime" data-by="time" aria-selected="false" aria-controls="cards" tabindex="-1">Best by time</button>
           </div>
@@ -67,8 +67,14 @@
         <button type="button" id="pickerClose" class="icon-btn" aria-label="Close"></button>
       </div>
       <div class="chain-select">
-        <button type="button" id="chainButton" class="chain-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainList"></button>
-        <ul id="chainList" class="chain-list" role="listbox" aria-label="Chain" hidden></ul>
+        <button type="button" id="chainButton" class="chain-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu"></button>
+        <div id="chainMenu" class="chain-menu" hidden>
+          <label class="chain-search">
+            <span class="sr-only">Search chains</span>
+            <input id="chainSearch" type="search" placeholder="Search chains" autocomplete="off" spellcheck="false" />
+          </label>
+          <ul id="chainList" class="chain-list" role="listbox" aria-label="Chain"></ul>
+        </div>
       </div>
       <label class="search">
         <span class="search-icon" aria-hidden="true"></span>
