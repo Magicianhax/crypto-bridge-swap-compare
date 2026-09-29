@@ -14,6 +14,8 @@ const TRADES = [
 const context = await chromium.launchPersistentContext('', {
   channel: process.env.SMOKE_CHANNEL ?? 'chrome',
   headless: !process.env.SMOKE_HEADFUL,
+  // Playwright disables Chrome's background throttling by default; real users have it on.
+  ignoreDefaultArgs: ['--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding'],
   args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, '--disable-features=DisableLoadExtensionCommandLineSwitch'],
 });
 let [worker] = context.serviceWorkers();

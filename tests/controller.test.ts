@@ -114,6 +114,18 @@ describe('Controller', () => {
     expect(status().matcha).toBe('timeout');
   });
 
+  it('says why a venue timed out', async () => {
+    const { controller, result } = setup();
+    await controller.compare(swapTrade());
+    controller.hello(TAB.jumper);
+    controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'));
+    controller.hello(TAB.bungee);
+    vi.advanceTimersByTime(30_000);
+    expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Quotes were for a different trade' });
+    expect(result('bungee')).toMatchObject({ status: 'timeout', error: 'Page never asked for a quote' });
+    expect(result('relay')).toMatchObject({ status: 'timeout', error: 'Page did not load' });
+  });
+
   it('fills unknown token decimals from another venue', async () => {
     const { controller, status, result } = setup();
     const trade = swapTrade();

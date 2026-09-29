@@ -33,6 +33,8 @@ export class Controller {
   private readonly results = new Map<VenueId, VenueResult>();
   private readonly captures = new Map<VenueId, Capture>();
   private readonly timers = new Map<VenueId, ReturnType<typeof setTimeout>>();
+  /** What each venue's page did this comparison, to explain a timeout. */
+  private readonly seen = new Map<VenueId, { hello: boolean; captures: number; ignored: number }>();
 
   constructor(
     private readonly port: BrowserPort,
@@ -50,6 +52,8 @@ export class Controller {
     this.trade = current;
     this.captures.clear();
     this.clearTimers();
+    this.seen.clear();
+    for (const venue of VENUE_IDS) this.seen.set(venue, { hello: false, captures: 0, ignored: 0 });
 
     const urls = new Map<VenueId, string>();
     for (const venue of VENUE_IDS) {
@@ -97,6 +101,8 @@ export class Controller {
   hello(tabId: number): HelloReply {
     const venue = this.tabs.get(tabId);
     if (venue === undefined || this.trade === null) return { owned: false };
+    const seen = this.seen.get(venue);
+    if (seen) seen.hello = true;
     const input = this.adapters[venue].amountInput;
     const reply: HelloReply = { owned: true, venue, generation: this.generation };
     if (input) reply.fill = { ...input, value: this.trade.amount };
@@ -118,6 +124,8 @@ export class Controller {
     }
     const previous = this.captures.get(venue);
     if (previous && previous.id > capture.id) return;
+    const seen = this.seen.get(venue);
+    if (seen && capture.id !== previous?.id) seen.captures += 1;
     this.captures.set(venue, capture);
     this.reparse(venue);
     this.publish();
@@ -184,7 +192,11 @@ export class Controller {
       this.set(venue, 'error', [], errorText(error));
       return;
     }
-    if (quotes === null) return;
+    if (quotes === null) {
+      const seen = this.seen.get(venue);
+      if (seen && capture.done) seen.ignored += 1;
+      return;
+    }
     const first = quotes[0];
     if (first) {
       this.set(venue, 'ok', quotes);
@@ -215,11 +227,19 @@ export class Controller {
       setTimeout(() => {
         this.timers.delete(venue);
         if (generation === this.generation && this.results.get(venue)?.status === 'loading') {
-          this.set(venue, 'timeout');
+          this.set(venue, 'timeout', [], this.timeoutReason(venue));
           this.publish();
         }
       }, this.adapters[venue].timeoutMs),
     );
+  }
+
+  private timeoutReason(venue: VenueId): string {
+    const seen = this.seen.get(venue);
+    if (!seen?.hello) return 'Page did not load';
+    if (seen.captures === 0) return 'Page never asked for a quote';
+    if (seen.ignored > 0) return 'Quotes were for a different trade';
+    return 'Quote still arriving';
   }
 
   private clearTimers(): void {

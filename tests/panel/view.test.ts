@@ -34,6 +34,11 @@ describe('renderRows', () => {
     expect(list.querySelector('li.status.error')?.textContent).toContain('Failed: HTTP 500');
   });
 
+  it('shows the reason a venue timed out', () => {
+    const rows = buildRows([{ venue: 'jumper', status: 'timeout', quotes: [], error: 'Page never asked for a quote', updatedAt: 1 }], 'ETH');
+    expect(rows[0]).toMatchObject({ kind: 'status', text: 'No quote: Page never asked for a quote' });
+  });
+
   it('renders venue text as text', () => {
     const list = document.createElement('ol');
     const hostile: VenueResult[] = [{ venue: 'relay', status: 'ok', updatedAt: 1, quotes: [quote({ venue: 'relay', route: '<img src=x onerror=alert(1)>' })] }];

@@ -31,7 +31,9 @@ export function buildRows(results: VenueResult[], toSymbol: string): Row[] {
     rows.push(
       r.status === 'error'
         ? { kind: 'status', venue: r.venue, venueLabel, text: `Failed: ${r.error ?? 'unknown error'}`, tone: 'error' }
-        : { kind: 'status', venue: r.venue, venueLabel, text: STATUS_TEXT[r.status], tone: 'muted' },
+        : r.status === 'timeout' && r.error
+          ? { kind: 'status', venue: r.venue, venueLabel, text: `No quote: ${r.error}`, tone: 'muted' }
+          : { kind: 'status', venue: r.venue, venueLabel, text: STATUS_TEXT[r.status], tone: 'muted' },
     );
   }
   return rows;
