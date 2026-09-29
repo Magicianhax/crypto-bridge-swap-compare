@@ -1,9 +1,11 @@
 import { VENUE_IDS, type TradeHint, type VenueId } from '../types';
 import { bungee } from './bungee';
+import { kyberswap } from './kyberswap';
 import { makeJumper } from './jumper';
 import { matcha } from './matcha';
 import { relay } from './relay';
 import type { VenueAdapter } from './types';
+import { uniswap } from './uniswap';
 
 export const ADAPTERS: Record<VenueId, VenueAdapter> = {
   jumper: makeJumper('jumper'),
@@ -11,10 +13,19 @@ export const ADAPTERS: Record<VenueId, VenueAdapter> = {
   bungee,
   relay,
   matcha,
+  kyberswap,
+  uniswap,
 };
 
-/** Content-script match patterns: the four venue origins, nothing else. */
-export const VENUE_MATCHES = ['https://jumper.xyz/*', 'https://app.bungee.exchange/*', 'https://relay.link/*', 'https://matcha.xyz/*'];
+/** Content-script match patterns: the venue origins, nothing else. */
+export const VENUE_MATCHES = [
+  'https://jumper.xyz/*',
+  'https://app.bungee.exchange/*',
+  'https://relay.link/*',
+  'https://matcha.xyz/*',
+  'https://kyberswap.com/*',
+  'https://app.uniswap.org/*',
+];
 
 function toUrl(href: string): URL | null {
   try {

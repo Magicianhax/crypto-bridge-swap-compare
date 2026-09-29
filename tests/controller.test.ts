@@ -4,7 +4,9 @@ import { NATIVE } from '../src/lib/tokens';
 import type { Trade, VenueResult } from '../src/types';
 import { bridgeTrade, loadCapture, swapTrade } from './helpers';
 
-const TAB = { jumper: 100, 'jumper-advanced': 101, bungee: 102, relay: 103, matcha: 104 } as const;
+const TAB = { jumper: 100, 'jumper-advanced': 101, bungee: 102, relay: 103, matcha: 104, kyberswap: 105, uniswap: 106 } as const;
+/** Swap-only DEXes sit out every bridge trade. */
+const DEX_OFF = { kyberswap: 'unsupported', uniswap: 'unsupported' } as const;
 
 function setup() {
   let next = 100;
@@ -32,11 +34,11 @@ describe('Controller', () => {
   it('opens one window and loads every venue', async () => {
     const { port, controller, status, emitted } = setup();
     await controller.compare(bridgeTrade());
-    expect(port.createWindow).toHaveBeenCalledWith(5);
-    expect(port.navigate).toHaveBeenCalledTimes(5);
+    expect(port.createWindow).toHaveBeenCalledWith(7);
+    expect(port.navigate).toHaveBeenCalledTimes(5); // the two swap-only DEXes skip a bridge
     expect(port.navigate).toHaveBeenCalledWith(TAB.jumper, expect.stringMatching(/^https:\/\/jumper\.xyz\/\?/));
     expect(port.navigate).toHaveBeenCalledWith(TAB.relay, expect.stringMatching(/^https:\/\/relay\.link\/bridge\/base\?/));
-    expect(Object.values(status())).toEqual(['loading', 'loading', 'loading', 'loading', 'loading']);
+    expect(Object.values(status())).toEqual(['loading', 'loading', 'loading', 'loading', 'loading', 'unsupported', 'unsupported']);
     expect(emitted.length).toBeGreaterThan(0);
   });
 
@@ -109,7 +111,7 @@ describe('Controller', () => {
     const { controller, status } = setup();
     await controller.compare(bridgeTrade());
     vi.advanceTimersByTime(30_000);
-    expect(status()).toEqual({ jumper: 'timeout', 'jumper-advanced': 'timeout', bungee: 'timeout', relay: 'timeout', matcha: 'loading' });
+    expect(status()).toEqual({ jumper: 'timeout', 'jumper-advanced': 'timeout', bungee: 'timeout', relay: 'timeout', matcha: 'loading', ...DEX_OFF });
     vi.advanceTimersByTime(89_000);
     expect(status().matcha).toBe('loading');
     vi.advanceTimersByTime(1_000);
@@ -187,9 +189,9 @@ describe('Controller', () => {
     const bera = { chainId: 80094, address: NATIVE, symbol: 'BERA', decimals: 18 };
     const trade: Trade = { ...bridgeTrade(), toChainId: 80094, toToken: bera };
     await controller.compare(trade);
-    expect(result('matcha')).toMatchObject({ status: 'unsupported', error: 'Berachain' });
+    expect(result('matcha')).toMatchObject({ status: 'unsupported', error: 'Not available on Berachain' });
     expect(status().jumper).toBe('loading');
-    expect(port.navigate).toHaveBeenCalledTimes(4);
+    expect(port.navigate).toHaveBeenCalledTimes(4); // Jumper, Jumper Advanced, Bungee, Relay; swap-only DEXes skip bridges
     vi.advanceTimersByTime(200_000);
     expect(status().matcha).toBe('unsupported');
   });
@@ -198,7 +200,7 @@ describe('Controller', () => {
     const { controller, status } = setup();
     const token = { chainId: 12345, address: NATIVE, symbol: 'X', decimals: 18 };
     await controller.compare({ ...bridgeTrade(), toChainId: 12345, toToken: token });
-    expect(Object.values(status())).toEqual(['unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported']);
+    expect(Object.values(status()).every((s) => s === 'unsupported')).toBe(true);
   });
 
   it('reuses the window and recreates a tab the user closed', async () => {
@@ -217,7 +219,7 @@ describe('Controller', () => {
     const { port, controller, status } = setup();
     await controller.compare(bridgeTrade());
     controller.onWindowRemoved(7);
-    expect(Object.values(status())).toEqual(['error', 'error', 'error', 'error', 'error']);
+    expect(Object.values(status())).toEqual(['error', 'error', 'error', 'error', 'error', 'unsupported', 'unsupported']);
     await controller.compare(bridgeTrade());
     expect(port.createWindow).toHaveBeenCalledTimes(2);
   });

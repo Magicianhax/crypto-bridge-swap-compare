@@ -12,6 +12,8 @@ export const VENUE_LOGO: Record<VenueId, string> = {
   bungee: 'bungee.webp',
   relay: 'relay.webp',
   matcha: 'matcha.webp',
+  kyberswap: 'kyberswap.webp',
+  uniswap: 'uniswap.webp',
 };
 
 export type CardState = 'quote' | Exclude<VenueStatus, 'ok' | 'idle'>;
@@ -43,7 +45,7 @@ function note(r: VenueResult): string {
   if (r.status === 'loading') return 'Reading the quote…';
   if (r.status === 'empty') return 'No route for this trade';
   if (r.status === 'error') return `Failed: ${r.error ?? 'unknown error'}`;
-  if (r.status === 'unsupported') return `Not available on ${r.error ?? 'this chain'}`;
+  if (r.status === 'unsupported') return r.error ?? 'Not available for this trade';
   return `No quote: ${r.error ?? 'no response in time'}`;
 }
 

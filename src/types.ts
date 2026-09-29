@@ -1,5 +1,5 @@
-export type VenueId = 'jumper' | 'jumper-advanced' | 'bungee' | 'relay' | 'matcha';
-export const VENUE_IDS: readonly VenueId[] = ['jumper', 'jumper-advanced', 'bungee', 'relay', 'matcha'];
+export type VenueId = 'jumper' | 'jumper-advanced' | 'bungee' | 'relay' | 'matcha' | 'kyberswap' | 'uniswap';
+export const VENUE_IDS: readonly VenueId[] = ['jumper', 'jumper-advanced', 'bungee', 'relay', 'matcha', 'kyberswap', 'uniswap'];
 
 export type Address = `0x${string}`;
 

@@ -35,7 +35,14 @@ describe('venue registry', () => {
     expect(hintFromUrl('https://example.com/')).toBeNull();
   });
 
-  it('injects into exactly the four venue origins', () => {
-    expect(VENUE_MATCHES).toEqual(['https://jumper.xyz/*', 'https://app.bungee.exchange/*', 'https://relay.link/*', 'https://matcha.xyz/*']);
+  it('injects into exactly the venue origins', () => {
+    expect(VENUE_MATCHES).toEqual([
+      'https://jumper.xyz/*',
+      'https://app.bungee.exchange/*',
+      'https://relay.link/*',
+      'https://matcha.xyz/*',
+      'https://kyberswap.com/*',
+      'https://app.uniswap.org/*',
+    ]);
   });
 });

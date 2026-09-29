@@ -59,9 +59,15 @@ export class Controller {
     const urls = new Map<VenueId, string>();
     for (const venue of VENUE_IDS) {
       // A venue that does not list one of the chains is never opened; its card says so at once.
-      const missing = [current.fromChainId, current.toChainId].find((id) => !venueSupports(venue, id));
+      const adapter = this.adapters[venue];
+      if (adapter.swapOnly && current.fromChainId !== current.toChainId) {
+        this.set(venue, 'unsupported', [], 'Swaps only, no bridging');
+        continue;
+      }
+      const serves = (id: number) => (adapter.chains ? adapter.chains.has(id) : venueSupports(venue, id));
+      const missing = [current.fromChainId, current.toChainId].find((id) => !serves(id));
       if (missing !== undefined) {
-        this.set(venue, 'unsupported', [], chainById(missing)?.name ?? `chain ${missing}`);
+        this.set(venue, 'unsupported', [], `Not available on ${chainById(missing)?.name ?? `chain ${missing}`}`);
         continue;
       }
       try {

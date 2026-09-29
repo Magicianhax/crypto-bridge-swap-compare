@@ -13,13 +13,15 @@ export default defineContentScript({
     const pending: Capture[] = [];
     const listening = new AbortController();
     let stopFill: (() => void) | null = null;
+    let overwriteFill = false;
 
     const forward = (capture: Capture) => {
       if (generation === null) {
         pending.push(capture);
         return;
       }
-      stopFill?.(); // the page has quoted; stop typing the amount
+      // The page has quoted; stop typing the amount (overwrite pages keep correcting a default instead).
+      if (!overwriteFill) stopFill?.();
       const message: RuntimeMessage = { type: 'capture', generation, capture };
       void browser.runtime.sendMessage(message).catch(() => undefined);
     };
@@ -46,6 +48,9 @@ export default defineContentScript({
     pending.splice(0).forEach(forward);
     const arm: PageMessage = { source: MSG_SOURCE, kind: 'arm' };
     window.postMessage(arm, window.location.origin);
-    if (reply.fill) stopFill = scheduleFill(document, reply.fill);
+    if (reply.fill) {
+      overwriteFill = reply.fill.overwrite === true;
+      stopFill = scheduleFill(document, reply.fill);
+    }
   },
 });

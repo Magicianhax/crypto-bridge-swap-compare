@@ -1,9 +1,14 @@
 import type { FillRequest } from '../messages';
 
-/** Sets a React-controlled input the way typing would. False when the input is missing or already filled. */
-export function fillAmount(doc: Document, selector: string, value: string): boolean {
+const sameNumber = (a: string, b: string) => a.trim() !== '' && Number(a.replace(/,/g, '')) === Number(b);
+
+/**
+ * Sets a React-controlled input the way typing would. False when the input is missing or already holds a value:
+ * any value normally, or with `overwrite` only the right amount (pages that start at a default like 1).
+ */
+export function fillAmount(doc: Document, selector: string, value: string, overwrite = false): boolean {
   const input = doc.querySelector<HTMLInputElement>(selector);
-  if (!input || input.value !== '') return false;
+  if (!input || (overwrite ? sameNumber(input.value, value) : input.value !== '')) return false;
   input.focus();
   const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input) as object, 'value')?.set;
   if (setter) setter.call(input, value);
@@ -24,7 +29,7 @@ export function scheduleFill(doc: Document, fill: FillRequest, tries = 150): () 
   const attempt = () => {
     if (stopped) return;
     left -= 1;
-    fillAmount(doc, fill.selector, fill.value);
+    fillAmount(doc, fill.selector, fill.value, fill.overwrite);
     if (left > 0) handle = setTimeout(attempt, 1000);
   };
   handle = setTimeout(attempt, fill.afterMs);

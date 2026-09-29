@@ -31,6 +31,18 @@ describe('fillAmount', () => {
   });
 });
 
+describe('fillAmount with overwrite', () => {
+  it('replaces a default value, but leaves the right amount alone', () => {
+    document.body.innerHTML = '<input placeholder="0.0" value="1">';
+    const onInput = vi.fn();
+    input()?.addEventListener('input', onInput);
+    expect(fillAmount(document, SELECTOR, '0.1', true)).toBe(true);
+    expect(input()?.value).toBe('0.1');
+    expect(fillAmount(document, SELECTOR, '0.10', true)).toBe(false);
+    expect(onInput).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('scheduleFill', () => {
   it('waits, then fills once the input appears', () => {
     vi.useFakeTimers();

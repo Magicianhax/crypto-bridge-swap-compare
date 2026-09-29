@@ -23,7 +23,7 @@ describe('buildCards', () => {
   });
 
   it('says which chain a venue does not support', () => {
-    const [card] = buildCards([{ venue: 'matcha', status: 'unsupported', quotes: [], error: 'Berachain', updatedAt: 1 }]);
+    const [card] = buildCards([{ venue: 'matcha', status: 'unsupported', quotes: [], error: 'Not available on Berachain', updatedAt: 1 }]);
     expect(card).toMatchObject({ state: 'unsupported', note: 'Not available on Berachain' });
   });
 

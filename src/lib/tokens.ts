@@ -10,7 +10,8 @@ export const EEEE: Address = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 /** Whether a venue lists the chain (Jumper Advanced shares Jumper's chains). */
 export function venueSupports(venue: VenueId, chainId: number): boolean {
   const key = venue === 'jumper-advanced' ? 'jumper' : venue;
-  return CHAINS.find((c) => c.id === chainId)?.venues.includes(key) ?? false;
+  const venues: readonly string[] = CHAINS.find((c) => c.id === chainId)?.venues ?? [];
+  return venues.includes(key);
 }
 
 export function isNative(address: string): boolean {
