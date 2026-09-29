@@ -26,3 +26,9 @@ tasks/*.local.md
 # generated
 src/styles/tokens.css
 repomix.xml
+.superpowers/
+
+# build
+node_modules/
+.output/
+.wxt/
