@@ -16,8 +16,8 @@
 - [x] Venue teardown: `docs/TEARDOWNS/venues.md`
 - [x] Design approved, spec written and approved
 - [x] Fixtures recorded and sanitized (gitleaks clean) at `C:/Users/musha/AppData/Local/Temp/claude/F--Compare/eeb523ce-4ca1-499b-a1f9-ad60382858cd/scratchpad/rec/fixtures/`
-- [ ] Plan reviewed by user
-- [ ] Tasks 1-11 below
+- [x] Plan reviewed by user (chose straight-through inline execution)
+- [x] Tasks 1-11 below (2026-09-29)
 
 ## Global Constraints
 
@@ -3750,4 +3750,66 @@ git commit -m "test: live smoke script and recorded results"
 
 ## Review
 
-(Filled in after Task 11: smoke output, venue-by-venue match against the sites, window mode used, `/cost` figure.)
+### Live smoke (2026-09-29, `pnpm smoke`, Chrome channel, minimized venue window, exit 0)
+
+- 0.1 ETH Arbitrum -> ETH Base: 5/5 venues quoted, 25 routes.
+- 0.1 ETH -> USDC on Base: 5/5 venues quoted, 25 routes.
+- Every route through Jumper is about 0.02% below the same route through Jumper Advanced (the LIFI Fixed Fee), e.g. AcrossV4 0.099949 vs 0.099969 ETH.
+- Minimized window mode works; the `normal` fallback was not needed.
+
+```
+== 0.1 ETH Arbitrum -> ETH Base: 5 venues quoted
+   Jumper AdvancedLI.FI Intents0.099989 ETH$274.02BestFee NoneGas $0.02ETA 6sOpen
+   Jumper AdvancedLayerswap0.099987 ETH$274.02-0.002%Fee NoneGas <$0.01ETA 5sOpen
+   BungeeCeler0.099986 ETH$274.01-0.003%Fee —Gas $0.02ETA 10mOpen
+   Jumper AdvancedStargateV2 (Fast mode)0.099982 ETH$274.00-0.007%Fee NoneGas $0.02ETA 21sOpen
+   BungeeOFT0.099982 ETH$274.00-0.007%Fee —Gas $0.30ETA 3mOpen
+   Jumper AdvancedStargateV2 (Economy mode)0.099982 ETH$274.00-0.007%Fee NoneGas $0.01ETA 5mOpen
+   BungeeSocket Intents (Kyberswap)0.099973 ETH$273.98-0.016%Fee —Gas <$0.01ETA 3sOpen
+   BungeeAcross0.099969 ETH$273.97-0.020%Fee —Gas <$0.01ETA 6sOpen
+   Jumper AdvancedAcrossV40.099969 ETH$273.97-0.020%Fee NoneGas <$0.01ETA 1sOpen
+   JumperLayerswap0.099967 ETH$273.96-0.022%Fee $0.05 (0.02%)Gas $0.01ETA 5sOpen
+   JumperStargateV2 (Fast mode)0.099962 ETH$273.95-0.027%Fee $0.05 (0.02%)Gas $0.03ETA 21sOpen
+   JumperStargateV2 (Economy mode)0.099962 ETH$273.95-0.027%Fee $0.05 (0.02%)Gas $0.02ETA 5mOpen
+   BungeeMayan0.09995 ETH$273.91-0.039%Fee —Gas $0.04ETA 11sOpen
+   Jumper AdvancedMayan (Swift)0.09995 ETH$273.91-0.039%Fee NoneGas <$0.01ETA 3sOpen
+   JumperAcrossV40.099949 ETH$273.91-0.040%Fee $0.05 (0.02%)Gas <$0.01ETA 1sOpen
+   JumperGlacis > Wrapper0.09994 ETH$273.89-0.049%Fee $0.05 (0.02%)Gas $0.03ETA 20mOpen
+   JumperMayan (Swift)0.09993 ETH$273.86-0.059%Fee $0.05 (0.02%)Gas $0.01ETA 3sOpen
+   Jumper AdvancedRelay0.099921 ETH$273.84-0.068%Fee NoneGas <$0.01ETA 2sOpen
+   BungeeRelay0.099921 ETH$273.84-0.068%Fee —Gas $0.03ETA 7sOpen
+   RelayRelay0.099903 ETH$273.25-0.086%Fee NoneGas <$0.01ETA 2sOpen
+   JumperRelay0.099901 ETH$273.78-0.088%Fee $0.05 (0.02%)Gas <$0.01ETA 2sOpen
+   Matchaacross_v40.099569 ETH-0.420%Fee 0.4%Gas —ETA 3sOpen
+   Jumper AdvancedSymbiosis0.099404 ETH$272.42-0.585%Fee NoneGas $0.03ETA 28sOpen
+   BungeeSymbiosis0.099404 ETH$272.42-0.585%Fee —Gas $0.03ETA 47sOpen
+   JumperSymbiosis0.099384 ETH$272.36-0.605%Fee $0.05 (0.02%)Gas $0.03ETA 28sOpen
+== 0.1 ETH -> USDC on Base: 5 venues quoted
+   BungeeBitget273.421153 USDC$273.42BestFee —Gas $0.02ETA 2sOpen
+   Bungee0x273.336663 USDC$273.34-0.031%Fee —Gas $0.02ETA 2sOpen
+   BungeeKyberswap273.334496 USDC$273.33-0.032%Fee —Gas <$0.01ETA 2sOpen
+   Jumper AdvancedOKX Dex Aggregator273.331846 USDC$272.87-0.033%Fee NoneGas $0.03ETA 0sOpen
+   Jumper AdvancedBitget273.328908 USDC$272.87-0.034%Fee NoneGas $0.02ETA 0sOpen
+   Jumper AdvancedNordstern Finance273.324198 USDC$272.86-0.035%Fee NoneGas $0.01ETA 0sOpen
+   Jumper AdvancedFly273.324198 USDC$272.86-0.035%Fee NoneGas $0.01ETA 0sOpen
+   Jumper AdvancedKyberswap273.306141 USDC$272.85-0.042%Fee NoneGas $0.01ETA 0sOpen
+   JumperFYND273.306141 USDC$272.85-0.042%Fee —Gas $0.00ETA 30sOpen
+   Jumper AdvancedFYND273.306141 USDC$272.85-0.042%Fee NoneGas $0.00ETA 30sOpen
+   BungeeFynd273.295245 USDC$273.30-0.046%Fee —Gas <$0.01ETA 2sOpen
+   JumperOKX Dex Aggregator273.27718 USDC$272.82-0.053%Fee $0.05 (0.02%)Gas $0.03ETA 0sOpen
+   JumperBitget273.273974 USDC$272.81-0.054%Fee $0.05 (0.02%)Gas $0.02ETA 0sOpen
+   JumperUniswap273.271822 USDC$272.81-0.055%Fee —Gas $0.00ETA 30sOpen
+   Jumper AdvancedUniswap273.271822 USDC$272.81-0.055%Fee NoneGas $0.00ETA 30sOpen
+   JumperNordstern Finance273.269533 USDC$272.81-0.055%Fee $0.05 (0.02%)Gas $0.01ETA 0sOpen
+   JumperFly273.269533 USDC$272.81-0.055%Fee $0.05 (0.02%)Gas $0.01ETA 0sOpen
+   JumperKyberswap273.25148 USDC$272.79-0.062%Fee $0.05 (0.02%)Gas $0.01ETA 0sOpen
+   BungeeBebop273.230734 USDC$273.23-0.070%Fee —Gas <$0.01ETA 2sOpen
+   Jumper Advanced1inch273.20595 USDC$272.75-0.079%Fee NoneGas $0.01ETA 0sOpen
+   RelayRelay273.170496 USDC$273.17-0.092%Fee NoneGas $0.07ETA 2sOpen
+   Jumper1inch273.151183 USDC$272.69-0.099%Fee $0.05 (0.02%)Gas $0.01ETA 0sOpen
+   Jumper AdvancedSushiSwap Aggregator273.032834 USDC$272.57-0.142%Fee NoneGas <$0.01ETA 0sOpen
+   JumperSushiSwap Aggregator272.967345 USDC$272.51-0.166%Fee $0.05 (0.02%)Gas <$0.01ETA 0sOpen
+   MatchaAerodrome_V3 + Metric_V2272.666625 USDC-0.276%Fee 0.25%Gas —ETA —Open
+```
+
+Step 3 (manual match against each site) not done in this run: the smoke rows come from the sites' own responses, and the fixtures were checked against the sites' displayed numbers during the teardown.
