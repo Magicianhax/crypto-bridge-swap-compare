@@ -1,0 +1,15 @@
+{
+  "//": "Copy to .mcp.json ONLY when a task needs one of these. Keys come from Windows user env (${VAR}); never paste a literal. .mcp.json is in the guard's config-tamper list, so the human copies it. Remove the leading // from a key to enable that server.",
+  "mcpServers": {
+    "//nansen": {
+      "type": "http",
+      "url": "https://mcp.nansen.ai/ra/mcp",
+      "headers": { "NANSEN-API-KEY": "${NANSEN_API_KEY}" }
+    },
+    "//etherscan": {
+      "type": "http",
+      "url": "https://mcp.etherscan.io/mcp",
+      "headers": { "Authorization": "Bearer ${ETHERSCAN_API_KEY}" }
+    }
+  }
+}

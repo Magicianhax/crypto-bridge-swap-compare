@@ -1,0 +1,28 @@
+# --- additions from ~/.claude/templates/project (append to the stack's own .gitignore) ---
+
+# secrets and key material
+.env
+.env.*
+!.env.example
+.env.keys
+*.pem
+*.key
+keystore/
+*wallet*.txt
+*-keys.txt
+
+# reverse-engineering captures (contain cookies and tokens)
+*.har
+*.flow
+*.mitm
+recovered/
+heimdall-out/
+
+# per-machine context
+CLAUDE.local.md
+tasks/*.local.md
+.claude/settings.local.json
+
+# generated
+src/styles/tokens.css
+repomix.xml

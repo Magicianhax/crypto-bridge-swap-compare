@@ -1,0 +1,55 @@
+# gitleaks config: extends the default ruleset with web3 key shapes.
+# Run: gitleaks git --pre-commit --staged --redact --no-banner
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+title = "project gitleaks"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "evm-private-key"
+description = "EVM private key (64 hex, optional 0x) assigned to a key-like name"
+regex = '''(?i)(private[_-]?key|priv[_-]?key|signer[_-]?key|deployer[_-]?key|pk)\s*[:=]\s*["']?(0x)?[0-9a-f]{64}["']?'''
+keywords = ["private_key", "privatekey", "priv_key", "signer_key", "deployer_key", "pk="]
+entropy = 3.0
+
+[[rules]]
+id = "evm-private-key-bare"
+description = "Bare 0x-prefixed 64-hex value (likely a private key)"
+regex = '''\b0x[0-9a-fA-F]{64}\b'''
+entropy = 3.5
+[rules.allowlist]
+# tx hashes, storage slots and bytes32 constants are also 64 hex; allow known-safe file types
+paths = ['''\.(json|lock|log|md)$''', '''broadcast/''', '''cache/''', '''out/''']
+
+[[rules]]
+id = "solana-keypair-json"
+description = "Solana keypair as a 64-element byte array"
+regex = '''\[\s*(\d{1,3}\s*,\s*){63}\d{1,3}\s*\]'''
+keywords = ["[", ","]
+[rules.allowlist]
+paths = ['''package-lock\.json$''', '''pnpm-lock\.yaml$''']
+
+[[rules]]
+id = "solana-base58-secret"
+description = "Base58 Solana secret key (87-88 chars) assigned to a key-like name"
+regex = '''(?i)(secret[_-]?key|private[_-]?key|keypair|wallet[_-]?key)\s*[:=]\s*["']?[1-9A-HJ-NP-Za-km-z]{87,88}["']?'''
+keywords = ["secret_key", "private_key", "keypair", "wallet_key"]
+
+[[rules]]
+id = "mnemonic-phrase"
+description = "12 or 24 word BIP-39 style mnemonic assigned to a name"
+regex = '''(?i)(mnemonic|seed[_-]?phrase|recovery[_-]?phrase)\s*[:=]\s*["']?([a-z]+\s+){11,23}[a-z]+["']?'''
+keywords = ["mnemonic", "seed_phrase", "recovery_phrase"]
+
+[[rules]]
+id = "rpc-url-with-key"
+description = "RPC URL embedding a provider key"
+regex = '''https?://[a-z0-9.-]+\.(alchemy|infura|quicknode|helius|ankr)[a-z./-]*/(v2|v3|rpc)?/?[A-Za-z0-9_-]{24,}'''
+keywords = ["alchemy", "infura", "quicknode", "helius", "ankr"]
+
+[allowlist]
+description = "Global allowlist"
+paths = ['''(^|/)\.gitleaks\.toml$''', '''(^|/)node_modules/''', '''(^|/)\.git/''']
+regexes = ['''0x0{64}''', '''0xf{64}''']
