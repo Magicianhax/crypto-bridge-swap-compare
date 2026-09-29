@@ -3,6 +3,20 @@ export const VENUE_IDS: readonly VenueId[] = ['jumper', 'jumper-advanced', 'bung
 
 export type Address = `0x${string}`;
 
+/** Venues whose chain lists we track; Jumper Advanced follows Jumper. */
+export type ChainVenue = 'jumper' | 'bungee' | 'relay' | 'matcha';
+
+export interface Chain {
+  id: number;
+  name: string;
+  /** path segment relay.link uses for the destination chain; absent when Relay does not support it */
+  relaySlug?: string;
+  /** venues that support this chain, from their own chain lists */
+  venues: readonly ChainVenue[];
+  /** file name in public/logos/chains */
+  logo: string;
+}
+
 export interface Token {
   chainId: number;
   address: Address;
@@ -44,7 +58,7 @@ export interface Quote {
   tags?: string[];
 }
 
-export type VenueStatus = 'idle' | 'loading' | 'ok' | 'empty' | 'error' | 'timeout';
+export type VenueStatus = 'idle' | 'loading' | 'ok' | 'empty' | 'error' | 'timeout' | 'unsupported';
 
 export interface VenueResult {
   venue: VenueId;

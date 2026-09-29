@@ -1,5 +1,6 @@
 import type { HelloReply } from './messages';
 import { VENUE_IDS, type Capture, type Quote, type Trade, type VenueId, type VenueResult, type VenueStatus } from './types';
+import { chainById, venueSupports } from './lib/tokens';
 import { ADAPTERS } from './venues';
 import type { VenueAdapter } from './venues/types';
 
@@ -57,6 +58,12 @@ export class Controller {
 
     const urls = new Map<VenueId, string>();
     for (const venue of VENUE_IDS) {
+      // A venue that does not list one of the chains is never opened; its card says so at once.
+      const missing = [current.fromChainId, current.toChainId].find((id) => !venueSupports(venue, id));
+      if (missing !== undefined) {
+        this.set(venue, 'unsupported', [], chainById(missing)?.name ?? `chain ${missing}`);
+        continue;
+      }
       try {
         urls.set(venue, this.adapters[venue].buildUrl(current));
         this.set(venue, 'loading');

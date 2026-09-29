@@ -37,12 +37,13 @@ export interface VenueCard {
   note?: string;
 }
 
-const STATE_ORDER: Record<CardState, number> = { quote: 0, loading: 1, empty: 2, timeout: 3, error: 4 };
+const STATE_ORDER: Record<CardState, number> = { quote: 0, loading: 1, empty: 2, timeout: 3, error: 4, unsupported: 5 };
 
 function note(r: VenueResult): string {
   if (r.status === 'loading') return 'Reading the quote…';
   if (r.status === 'empty') return 'No route for this trade';
   if (r.status === 'error') return `Failed: ${r.error ?? 'unknown error'}`;
+  if (r.status === 'unsupported') return `Not available on ${r.error ?? 'this chain'}`;
   return `No quote: ${r.error ?? 'no response in time'}`;
 }
 

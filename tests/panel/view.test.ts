@@ -22,6 +22,11 @@ describe('buildCards', () => {
     expect(cards[3]).toMatchObject({ note: 'Failed: HTTP 500' });
   });
 
+  it('says which chain a venue does not support', () => {
+    const [card] = buildCards([{ venue: 'matcha', status: 'unsupported', quotes: [], error: 'Berachain', updatedAt: 1 }]);
+    expect(card).toMatchObject({ state: 'unsupported', note: 'Not available on Berachain' });
+  });
+
   it('explains a timeout', () => {
     const [card] = buildCards([{ venue: 'jumper', status: 'timeout', quotes: [], error: 'Page never asked for a quote', updatedAt: 1 }]);
     expect(card).toMatchObject({ state: 'timeout', note: 'No quote: Page never asked for a quote' });

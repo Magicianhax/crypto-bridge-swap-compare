@@ -11,8 +11,8 @@ describe('Relay', () => {
   });
 
   it('refuses chains Relay does not list', () => {
-    const trade = { ...bridgeTrade(), toChainId: 999 };
-    expect(() => relay.buildUrl(trade)).toThrow('Relay does not list chain 999');
+    const trade = { ...bridgeTrade(), toChainId: 12345 };
+    expect(() => relay.buildUrl(trade)).toThrow('Relay does not list chain 12345');
   });
 
   it('reads the destination from the slug and treats missing currencies as native', () => {

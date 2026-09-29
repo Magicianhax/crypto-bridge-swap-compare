@@ -64,7 +64,7 @@ describe('stateFromHint', () => {
   });
 
   it('falls back for unknown chains and missing fields', () => {
-    const s = stateFromHint({ fromChainId: 999 }, { ...DEFAULT_STATE, amount: '3' });
+    const s = stateFromHint({ fromChainId: 12345 }, { ...DEFAULT_STATE, amount: '3' });
     expect(s).toMatchObject({ fromChainId: DEFAULT_STATE.fromChainId, toChainId: DEFAULT_STATE.fromChainId, amount: '3' });
   });
 });

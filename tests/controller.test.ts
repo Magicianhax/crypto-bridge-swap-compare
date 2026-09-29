@@ -182,13 +182,23 @@ describe('Controller', () => {
     expect(status().bungee).toBe('ok');
   });
 
-  it('shows a build error for a chain a venue does not support', async () => {
-    const { controller, result, status } = setup();
-    const token = { chainId: 999, address: NATIVE, symbol: 'X', decimals: 18 };
-    const trade: Trade = { ...bridgeTrade(), toChainId: 999, toToken: token };
+  it('marks venues that do not list a chain as unsupported, without opening them', async () => {
+    const { controller, result, status, port } = setup();
+    const bera = { chainId: 80094, address: NATIVE, symbol: 'BERA', decimals: 18 };
+    const trade: Trade = { ...bridgeTrade(), toChainId: 80094, toToken: bera };
     await controller.compare(trade);
-    expect(result('relay')).toMatchObject({ status: 'error', error: 'Relay does not list chain 999' });
+    expect(result('matcha')).toMatchObject({ status: 'unsupported', error: 'Berachain' });
     expect(status().jumper).toBe('loading');
+    expect(port.navigate).toHaveBeenCalledTimes(4);
+    vi.advanceTimersByTime(200_000);
+    expect(status().matcha).toBe('unsupported');
+  });
+
+  it('treats a chain nobody lists as unsupported everywhere', async () => {
+    const { controller, status } = setup();
+    const token = { chainId: 12345, address: NATIVE, symbol: 'X', decimals: 18 };
+    await controller.compare({ ...bridgeTrade(), toChainId: 12345, toToken: token });
+    expect(Object.values(status())).toEqual(['unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported']);
   });
 
   it('reuses the window and recreates a tab the user closed', async () => {

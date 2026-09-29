@@ -35,3 +35,6 @@ node_modules/
 
 # design tool cache
 .impeccable/
+
+# catalog source snapshots (large, re-fetched by scripts/catalog/grab-sources.mjs)
+scripts/catalog/sources/
