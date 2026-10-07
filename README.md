@@ -82,7 +82,7 @@ The chain and token lists are generated from the venues' own lists by `scripts/c
 |---|---|
 | `sidePanel` | Shows the extension in Chrome's side panel. |
 | `storage` | Remembers your last trade form. Nothing else is stored. |
-| `jumper.xyz`, `app.bungee.exchange`, `relay.link`, `matcha.xyz`, `kyberswap.com`, `app.uniswap.org`, `swap.defillama.com` | Opens those sites in its own background tabs and reads their quotes. |
+| `jumper.xyz`, `www.bungee.exchange`, `relay.link`, `matcha.xyz`, `kyberswap.com`, `app.uniswap.org`, `swap.defillama.com` | Opens those sites in its own background tabs and reads their quotes. |
 
 No other sites, no browsing history, no remote code, no analytics.
 

@@ -22,7 +22,7 @@ export const ADAPTERS: Record<VenueId, VenueAdapter> = {
 /** Content-script match patterns: the venue origins, nothing else. */
 export const VENUE_MATCHES = [
   'https://jumper.xyz/*',
-  'https://app.bungee.exchange/*',
+  'https://www.bungee.exchange/*',
   'https://relay.link/*',
   'https://matcha.xyz/*',
   'https://kyberswap.com/*',

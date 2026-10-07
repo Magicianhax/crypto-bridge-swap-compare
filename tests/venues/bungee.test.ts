@@ -4,9 +4,9 @@ import { bungee } from '../../src/venues/bungee';
 import { bridgeTrade, loadCapture, swapTrade } from '../helpers';
 
 describe('Bungee', () => {
-  it('prefills app.bungee.exchange with 0xeee for native', () => {
+  it('prefills www.bungee.exchange/swap (app.bungee.exchange now redirects there) with 0xeee for native', () => {
     expect(bungee.buildUrl(bridgeTrade())).toBe(
-      'https://app.bungee.exchange/?originChainId=42161&destinationChainId=8453&inputToken=0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&outputToken=0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&amount=0.1',
+      'https://www.bungee.exchange/swap?originChainId=42161&destinationChainId=8453&inputToken=0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&outputToken=0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&amount=0.1',
     );
   });
 
@@ -18,7 +18,10 @@ describe('Bungee', () => {
       toToken: NATIVE,
       amount: '0.1',
     });
-    expect(bungee.parseUrl(new URL('https://www.bungee.exchange/'))).toBeNull();
+    expect(bungee.host).toBe('www.bungee.exchange');
+    // A link to the old address still prefills the form.
+    expect(bungee.parseUrl(new URL('https://app.bungee.exchange/?originChainId=1&destinationChainId=10'))).toMatchObject({ fromChainId: 1, toChainId: 10 });
+    expect(bungee.parseUrl(new URL('https://bungee.example/?originChainId=1'))).toBeNull();
   });
 
   it('matches the quote stream only', () => {

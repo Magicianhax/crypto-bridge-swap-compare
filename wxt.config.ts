@@ -8,7 +8,7 @@ export default defineConfig({
     permissions: ['sidePanel', 'storage'],
     host_permissions: [
       'https://jumper.xyz/*',
-      'https://app.bungee.exchange/*',
+      'https://www.bungee.exchange/*',
       'https://relay.link/*',
       'https://matcha.xyz/*',
       'https://kyberswap.com/*',

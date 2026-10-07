@@ -13,8 +13,8 @@ writeFileSync(`${OUT}/relay-chains.json`, await relay.text());
 const targets = [
   ['https://jumper.xyz/', /api\.jumper\.xyz\/pipeline\/v1\/chains/, 'jumper-v1-chains.json'],
   ['https://jumper.xyz/', /api\.jumper\.xyz\/pipeline\/v1\/tokens(\?|$)/, 'jumper-v1-tokens.json'],
-  ['https://app.bungee.exchange/', /backend\.socket\.tech\/v3\/swap\/supported-chains/, 'bungee-swap-supported-chains.json'],
-  ['https://app.bungee.exchange/', /backend\.socket\.tech\/v3\/swap\/tokens\/list/, 'bungee-tokens-list.json'],
+  ['https://www.bungee.exchange/swap', /backend\.socket\.tech\/v3\/swap\/supported-chains/, 'bungee-swap-supported-chains.json'],
+  ['https://www.bungee.exchange/swap', /backend\.socket\.tech\/v3\/swap\/tokens\/list/, 'bungee-tokens-list.json'],
 ];
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });

@@ -11,7 +11,14 @@ export interface BrowserPort {
   createTab(windowId: number): Promise<number>;
   navigate(tabId: number, url: string): Promise<void>;
   closeWindow(windowId: number): Promise<void>;
+  /** Where a tab is: its load status, and its URL when it is on a site the extension may read. */
+  inspect(tabId: number): Promise<{ status?: string; url?: string }>;
 }
+
+/** A venue page that has not started within this long gets reloaded once. */
+export const STALL_MS = 15_000;
+/** The second wait, after a reload, is capped so a venue never holds the comparison for long. */
+const RETRY_WAIT_MS = 45_000;
 
 /** Largest response body accepted from a page (Bungee's full stream is about 0.25 MB). */
 const MAX_CAPTURE_CHARS = 4_000_000;
@@ -35,6 +42,11 @@ export class Controller {
   /** Venue -> endpoint (host + path) -> that endpoint's latest capture. */
   private readonly captures = new Map<VenueId, Map<string, Capture>>();
   private readonly timers = new Map<VenueId, ReturnType<typeof setTimeout>>();
+  private readonly stalls = new Map<VenueId, ReturnType<typeof setTimeout>>();
+  /** Each venue's prefilled URL this comparison, kept for a reload. */
+  private readonly urls = new Map<VenueId, string>();
+  /** Venues already reloaded once this comparison. */
+  private readonly retried = new Set<VenueId>();
   /** What each venue's page did this comparison, to explain a timeout. */
   private readonly seen = new Map<VenueId, { hello: boolean; captures: number; ignored: number }>();
 
@@ -55,9 +67,11 @@ export class Controller {
     this.captures.clear();
     this.clearTimers();
     this.seen.clear();
+    this.urls.clear();
+    this.retried.clear();
     for (const venue of VENUE_IDS) this.seen.set(venue, { hello: false, captures: 0, ignored: 0 });
 
-    const urls = new Map<VenueId, string>();
+    const urls = this.urls;
     for (const venue of VENUE_IDS) {
       // A venue that does not list one of the chains is never opened; its card says so at once.
       const adapter = this.adapters[venue];
@@ -255,26 +269,81 @@ export class Controller {
 
   private set(venue: VenueId, status: VenueStatus, quotes: Quote[] = [], error?: string): void {
     this.results.set(venue, { venue, status, quotes, updatedAt: Date.now(), ...(error ? { error } : {}) });
-    if (status !== 'loading') {
-      const timer = this.timers.get(venue);
-      if (timer !== undefined) clearTimeout(timer);
-      this.timers.delete(venue);
-    }
+    if (status !== 'loading') this.stopTimers(venue);
   }
 
-  private startTimer(venue: VenueId, generation: number): void {
-    const existing = this.timers.get(venue);
-    if (existing !== undefined) clearTimeout(existing);
+  private startTimer(venue: VenueId, generation: number, waitMs = this.adapters[venue].timeoutMs): void {
+    this.stopTimers(venue);
+    const live = () => generation === this.generation && this.results.get(venue)?.status === 'loading';
+    // A page that never started loading (stuck navigation, dropped connection) is reloaded early.
+    if (!this.retried.has(venue)) {
+      this.stalls.set(
+        venue,
+        setTimeout(() => {
+          this.stalls.delete(venue);
+          if (live() && !this.seen.get(venue)?.hello) void this.retry(venue, generation);
+        }, Math.min(STALL_MS, waitMs)),
+      );
+    }
     this.timers.set(
       venue,
       setTimeout(() => {
         this.timers.delete(venue);
-        if (generation === this.generation && this.results.get(venue)?.status === 'loading') {
-          this.set(venue, 'timeout', [], this.timeoutReason(venue));
-          this.publish();
+        if (!live()) return;
+        // No quote yet: reload the page once and wait again before giving up.
+        if (!this.retried.has(venue)) {
+          void this.retry(venue, generation);
+          return;
         }
-      }, this.adapters[venue].timeoutMs),
+        void this.giveUp(venue, generation);
+      }, waitMs),
     );
+  }
+
+  private async retry(venue: VenueId, generation: number): Promise<void> {
+    const url = this.urls.get(venue);
+    const tabId = [...this.tabs].find(([, v]) => v === venue)?.[0];
+    if (url === undefined || tabId === undefined) return this.giveUp(venue, generation);
+    this.retried.add(venue);
+    this.seen.set(venue, { hello: false, captures: 0, ignored: 0 });
+    this.captures.delete(venue);
+    this.startTimer(venue, generation, Math.min(this.adapters[venue].timeoutMs, RETRY_WAIT_MS));
+    try {
+      await this.port.navigate(tabId, url);
+    } catch (error) {
+      if (generation === this.generation && this.results.get(venue)?.status === 'loading') {
+        this.set(venue, 'error', [], errorText(error));
+        this.publish();
+      }
+    }
+  }
+
+  private async giveUp(venue: VenueId, generation: number): Promise<void> {
+    let reason = this.timeoutReason(venue);
+    if (!this.seen.get(venue)?.hello) reason = await this.loadReason(venue);
+    if (generation !== this.generation || this.results.get(venue)?.status !== 'loading') return;
+    this.set(venue, 'timeout', [], reason);
+    this.publish();
+  }
+
+  /** Why a page never said hello, from where its tab ended up. */
+  private async loadReason(venue: VenueId): Promise<string> {
+    const tabId = [...this.tabs].find(([, v]) => v === venue)?.[0];
+    if (tabId === undefined) return 'Tab closed';
+    const tab = await this.port.inspect(tabId).catch(() => null);
+    if (!tab) return 'Tab closed';
+    // The URL is only visible on the venue sites themselves: anything else is a redirect or a page that never started.
+    if (tab.url === undefined || toUrl(tab.url)?.hostname !== this.adapters[venue].host) return `Page never opened ${this.adapters[venue].host}`;
+    if (tab.status === 'loading') return 'Page still loading: site slow or down';
+    return 'Page did not load';
+  }
+
+  private stopTimers(venue: VenueId): void {
+    for (const map of [this.timers, this.stalls]) {
+      const timer = map.get(venue);
+      if (timer !== undefined) clearTimeout(timer);
+      map.delete(venue);
+    }
   }
 
   private timeoutReason(venue: VenueId): string {
@@ -286,8 +355,7 @@ export class Controller {
   }
 
   private clearTimers(): void {
-    for (const timer of this.timers.values()) clearTimeout(timer);
-    this.timers.clear();
+    for (const venue of VENUE_IDS) this.stopTimers(venue);
   }
 
   private publish(): void {

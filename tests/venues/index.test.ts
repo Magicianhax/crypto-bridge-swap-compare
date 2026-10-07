@@ -38,7 +38,7 @@ describe('venue registry', () => {
   it('injects into exactly the venue origins', () => {
     expect(VENUE_MATCHES).toEqual([
       'https://jumper.xyz/*',
-      'https://app.bungee.exchange/*',
+      'https://www.bungee.exchange/*',
       'https://relay.link/*',
       'https://matcha.xyz/*',
       'https://kyberswap.com/*',

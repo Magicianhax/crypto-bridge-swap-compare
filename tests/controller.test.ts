@@ -15,6 +15,7 @@ function setup() {
     createTab: vi.fn(async (_windowId: number) => next++),
     navigate: vi.fn(async (_tabId: number, _url: string) => undefined),
     closeWindow: vi.fn(async (_windowId: number) => undefined),
+    inspect: vi.fn(async (_tabId: number): Promise<{ status?: string; url?: string }> => ({ status: 'loading' })),
   } satisfies BrowserPort;
   const emitted: VenueResult[][] = [];
   const controller = new Controller(port, (results) => emitted.push(results));
@@ -116,34 +117,61 @@ describe('Controller', () => {
     expect(status().jumper).toBe('loading');
   });
 
-  it('times out venues that never quote, Matcha last', async () => {
-    const { controller, status } = setup();
+  it('reloads a page that never started once, then times out, Matcha last', async () => {
+    const { controller, status, port } = setup();
     await controller.compare(bridgeTrade());
-    vi.advanceTimersByTime(30_000);
+    expect(port.navigate).toHaveBeenCalledTimes(5);
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(port.navigate).toHaveBeenCalledTimes(10);
+    expect(port.navigate).toHaveBeenLastCalledWith(TAB.matcha, expect.stringMatching(/^https:\/\/matcha\.xyz\//));
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(status().jumper).toBe('loading');
+    await vi.advanceTimersByTimeAsync(1_000);
     expect(status()).toEqual({ jumper: 'timeout', 'jumper-advanced': 'timeout', bungee: 'timeout', relay: 'timeout', matcha: 'loading', ...DEX_OFF });
-    vi.advanceTimersByTime(89_000);
-    expect(status().matcha).toBe('loading');
-    vi.advanceTimersByTime(1_000);
+    await vi.advanceTimersByTimeAsync(15_000);
     expect(status().matcha).toBe('timeout');
+    expect(port.navigate).toHaveBeenCalledTimes(10);
   });
 
-  it('says why a venue timed out', async () => {
-    const { controller, result } = setup();
+  it('takes the quote a reloaded page brings', async () => {
+    const { controller, status } = setup();
     await controller.compare(swapTrade());
-    controller.hello(TAB.jumper);
-    controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'));
-    controller.hello(TAB.bungee);
-    vi.advanceTimersByTime(30_000);
+    await vi.advanceTimersByTimeAsync(15_000);
+    controller.hello(TAB.relay);
+    controller.onCapture(TAB.relay, 1, loadCapture('relay', 'swap'));
+    expect(status().relay).toBe('ok');
+  });
+
+  it('reloads a page that loaded but never quoted, then says why it timed out', async () => {
+    const { controller, result, port } = setup();
+    port.inspect.mockImplementation(async (tabId: number) =>
+      tabId === TAB['jumper-advanced'] ? { status: 'loading', url: 'https://jumper.xyz/advanced' } : { status: 'complete' },
+    );
+    await controller.compare(swapTrade());
+    const visit = () => {
+      controller.hello(TAB.jumper);
+      controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'));
+      controller.hello(TAB.bungee);
+    };
+    visit();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(result('bungee')?.status).toBe('loading');
+    expect(port.navigate).toHaveBeenCalledWith(TAB.bungee, expect.stringMatching(/^https:\/\/www\.bungee\.exchange\/swap/));
+    visit();
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Quotes were for a different trade' });
     expect(result('bungee')).toMatchObject({ status: 'timeout', error: 'Page never asked for a quote' });
-    expect(result('relay')).toMatchObject({ status: 'timeout', error: 'Page did not load' });
+    expect(result('relay')).toMatchObject({ status: 'timeout', error: 'Page never opened relay.link' });
+    expect(result('jumper-advanced')).toMatchObject({ status: 'timeout', error: 'Page still loading: site slow or down' });
   });
 
   it('updates the timeout reason when a late quote turns out to be for another trade', async () => {
     const { controller, result } = setup();
     await controller.compare(swapTrade());
     controller.hello(TAB.jumper);
-    vi.advanceTimersByTime(30_000);
+    await vi.advanceTimersByTimeAsync(30_000);
+    controller.hello(TAB.jumper);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Page never asked for a quote' });
     controller.onCapture(TAB.jumper, 1, loadCapture('jumper', 'bridge'));
     expect(result('jumper')).toMatchObject({ status: 'timeout', error: 'Quotes were for a different trade' });

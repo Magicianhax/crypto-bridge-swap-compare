@@ -42,7 +42,8 @@ function toQuote(raw: unknown): Quote | null {
 export const bungee: VenueAdapter = {
   id: 'bungee',
   label: 'Bungee',
-  host: 'app.bungee.exchange',
+  // app.bungee.exchange redirects here since 2026-10; the quote stream is unchanged.
+  host: 'www.bungee.exchange',
   timeoutMs: 30_000,
 
   buildUrl(trade: Trade): string {
@@ -53,11 +54,11 @@ export const bungee: VenueAdapter = {
       outputToken: venueAddress(trade.toToken.address, EEEE),
       amount: trade.amount,
     });
-    return `https://app.bungee.exchange/?${p}`;
+    return `https://www.bungee.exchange/swap?${p}`;
   },
 
   parseUrl(url: URL) {
-    if (url.hostname !== 'app.bungee.exchange') return null;
+    if (url.hostname !== 'www.bungee.exchange' && url.hostname !== 'app.bungee.exchange') return null;
     const p = url.searchParams;
     return compact({
       fromChainId: intParam(p, 'originChainId'),

@@ -8,16 +8,34 @@ const WINDOW_STATE: 'minimized' | 'normal' = 'minimized';
 /** Survives a service-worker restart, so a window the old worker opened can be closed. */
 const WINDOW_KEY = 'venueWindowId';
 
+/**
+ * Chrome on Windows opens a window asked to start minimized as a normal one, and ignores a minimize sent before
+ * the window is on screen. Minimize once it is shown, and re-check until it sticks.
+ */
+async function minimize(windowId: number): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const win = await browser.windows.get(windowId).catch(() => undefined);
+    if (!win) return;
+    if (win.state === 'minimized') return;
+    await browser.windows.update(windowId, { state: 'minimized' }).catch(() => undefined);
+  }
+}
+
 const chromePort: BrowserPort = {
   async createWindow(tabCount) {
     const win = await browser.windows.create({
       url: Array.from({ length: tabCount }, () => 'about:blank'),
       focused: false,
-      ...(WINDOW_STATE === 'minimized' ? { state: 'minimized' as const } : { width: 480, height: 360, left: 0, top: 0 }),
+      width: 480,
+      height: 360,
+      left: 0,
+      top: 0,
     });
     const tabIds = (win?.tabs ?? []).map((tab) => tab.id).filter((id): id is number => id !== undefined);
     if (win?.id === undefined || tabIds.length !== tabCount) throw new Error('Could not open the venue window');
     await browser.storage.session.set({ [WINDOW_KEY]: win.id });
+    if (WINDOW_STATE === 'minimized') await minimize(win.id);
     return { windowId: win.id, tabIds };
   },
   async createTab(windowId) {
@@ -27,6 +45,10 @@ const chromePort: BrowserPort = {
   },
   async navigate(tabId, url) {
     await browser.tabs.update(tabId, { url });
+  },
+  async inspect(tabId) {
+    const tab = await browser.tabs.get(tabId);
+    return { status: tab.status, url: tab.url };
   },
   async closeWindow(windowId) {
     await browser.storage.session.remove(WINDOW_KEY);
